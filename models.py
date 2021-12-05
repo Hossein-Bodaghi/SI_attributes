@@ -290,9 +290,35 @@ class mb_build_model(nn.Module):
         return out 
     
     def forward(self, x):
-        out_conv4 = self.out_layers_extractor(x, 'out_conv4')
-        
+        out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
         out_attributes = {}
+
+        if self.sep_fc:
+            # head
+            head_fcc = []
+            head_fcc.append(self.head_fc)
+            head_fcc.append(self.head_color_fc)
+            # upper body
+            upper_body_fcc = []
+            upper_body_fcc.append(self.body_fc)
+            upper_body_fcc.append(self.body_type_fc )
+            upper_body_fcc.append(self.body_color_fc)   
+            #lower_body
+            lower_body_fcc = []
+            lower_body_fcc.append(self.leg_fc)
+            lower_body_fcc.append(self.leg_color_fc)             
+            #foot
+            foot_fcc = []
+            foot_fcc.append(self.foot_fc)
+            foot_fcc.append(self.foot_color_fc)   
+            #bags
+            bag_fcc = []
+            bag_fcc.append(self.bag_fc)       
+            # general
+            general_fcc = []
+            general_fcc.append(self.age_fc)
+            general_fcc.append(self.gender_fc)
+            
         out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf)          
         out_body = self.attr_branch(out_conv4, self.conv_body, self.body_fc, self.body_clf)     
         out_body_type = self.attr_branch(out_conv4, self.conv_body_type, self.body_type_fc, self.body_type_clf)          
