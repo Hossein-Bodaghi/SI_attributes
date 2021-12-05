@@ -318,8 +318,28 @@ class mb_build_model(nn.Module):
             general_fcc = []
             general_fcc.append(self.age_fc)
             general_fcc.append(self.gender_fc)
+        else:
+            # head
+            head_fcc = []
+            head_fcc.append(self.head_fc) 
+            # upper body
+            upper_body_fcc = []
+            upper_body_fcc.append(self.body_fc)  
+            #lower_body
+            lower_body_fcc = []
+            lower_body_fcc.append(self.leg_fc)            
+            #foot
+            foot_fcc = []
+            foot_fcc.append(self.foot_fc)  
+            #bags
+            bag_fcc = []
+            bag_fcc.append(self.bag_fc)       
+            # general
+            general_fcc = []
+            general_fcc.append(self.age_fc)
             
-        out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf)          
+        out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf) 
+        #out_head_colour = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf)          
         out_body = self.attr_branch(out_conv4, self.conv_body, self.body_fc, self.body_clf)     
         out_body_type = self.attr_branch(out_conv4, self.conv_body_type, self.body_type_fc, self.body_type_clf)          
         out_leg = self.attr_branch(out_conv4, self.conv_leg ,self.leg_fc, self.leg_clf)           
@@ -328,8 +348,10 @@ class mb_build_model(nn.Module):
         out_bags = self.attr_branch(out_conv4, self.conv_bags, self.bags_fc, self.bags_clf)            
         out_body_colour = self.attr_branch(out_conv4, self.conv_body_color, self.body_color_fc, self.body_color_clf)             
         out_leg_colour = self.attr_branch(out_conv4, self.conv_leg_color, self.leg_color_fc, self.leg_color_clf)              
-        out_foot_colour = self.attr_branch(out_conv4, self.conv_foot_color, self.foot_color_fc, self.foot_color_clf)    
-        out_attributes.update({'head':out_head,
+        out_foot_colour = self.attr_branch(out_conv4, self.conv_foot_color, self.foot_color_fc, self.foot_color_clf) 
+        # out_age = self.attr_branch(out_conv4, self.conv_foot_color, self.foot_color_fc, self.foot_color_clf)
+        # out_attributes.update({'head':out_head,
+                                 'head_colour':out_head_colour,
                                  'body':out_body,
                                  'body_type':out_body_type,
                                  'leg':out_leg,
@@ -338,7 +360,8 @@ class mb_build_model(nn.Module):
                                  'bags':out_bags,
                                  'body_colour':out_body_colour,
                                  'leg_colour':out_leg_colour,
-                                 'foot_colour':out_foot_colour})
+                                 'foot_colour':out_foot_colour,
+                                 'age':out_age})
         return out_attributes
     
     def save_baseline(self, saving_path):
