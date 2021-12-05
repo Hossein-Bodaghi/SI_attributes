@@ -162,50 +162,34 @@ class mb_build_model(nn.Module):
             self.bag_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p) 
             # general
             self.age_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-        # classifiers
             
+        # classifiers
+        # head
+        self.head_clf = nn.Linear(self.attr_dim, 5)
+        # head color
+        self.head_color_clf = nn.Linear(self.attr_dim, 2)
+        # body
+        self.body_clf = nn.Linear(self.attr_dim, 4)
+        # body type
+        self.body_type_clf = nn.Linear(self.attr_dim, 1)
+        # body_color
+        self.body_color_clf = nn.Linear(self.attr_dim, 8)
+        # leg
+        self.leg_clf = nn.Linear(self.attr_dim, 3)
+        # leg_color
+        self.leg_color_clf = nn.Linear(self.attr_dim, 9)
+        # foot
+        self.foot_clf = nn.Linear(self.attr_dim, 3)
+        # foot color
+        self.foot_color_clf = nn.Linear(self.attr_dim, 4)
+        # bag
+        self.bag_clf = nn.Linear(self.attr_dim, 4)
+        # gender
+        self.gender_clf = nn.Linear(self.attr_dim, 1)        
         # age
         self.age_clf = nn.Linear(self.attr_feat_dim, 4)
         
-        self.head_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.head_clf = nn.Linear(self.attr_feat_dim, 5) 
-        # body
-
-        self.body_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.body_clf = nn.Linear(self.attr_feat_dim, 3)         
-        # body_type
-
-        self.body_type_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.body_type_clf = nn.Linear(self.attr_feat_dim, 1)  
-        # leg
-      
-        self.leg_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.leg_clf = nn.Linear(self.attr_feat_dim, 3)
-        # foot
-        
-        self.foot_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.foot_clf = nn.Linear(self.attr_feat_dim, 3)        
-        # gender
-
-        self.gender_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.gender_clf = nn.Linear(self.attr_feat_dim, 1)
-        # bags
-
-        self.bags_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.bags_clf = nn.Linear(self.attr_feat_dim, 3)        
-        # body-color
-
-        self.body_color_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.body_color_clf = nn.Linear(self.attr_feat_dim, 9)
-        # leg-color
-
-        self.leg_color_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.leg_color_clf = nn.Linear(self.attr_feat_dim, 9)
-        # foot-color
-
-        self.foot_color_fc = self._construct_fc_layer(self.attr_feat_dim, channels[1], dropout_p=dropout_p)
-        self.foot_color_clf = nn.Linear(self.attr_feat_dim, 9)
-        
+     
     def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
         if fc_dims is None or fc_dims < 0:
             self.feature_dim = input_dim
