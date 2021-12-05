@@ -24,12 +24,10 @@ def unique(list1):
 def data_delivery(main_path,
                   path_attr=None,
                   path_start=None,
-                  path_market_attr=None,
                   only_id=False,
                   double = True,
                   need_collection=False,
                   need_attr=True,
-                  CA_Market = True,
                   mode = 'CA_Market'):
     '''
     
@@ -130,11 +128,8 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
     
     if only_id:
         return {'img_names':np.array(img_names),'id':id_,'id_weights':torch.from_numpy(np.array(ids_weights)), 'cam_id':cam_id}
-    
-    if mode == 'CA_Market':
-        attr_vec =  np.delete(attr_vec_np, slice(6,15), axis=1)
-    else:
-        attr_vec = attr_vec_np
+
+    attr_vec = attr_vec_np
     attr_vec = torch.from_numpy(attr_vec)
     sum_attr_train = torch.sum(attr_vec, axis=0)
     n_samples, n_classes = attr_vec.size()
@@ -155,6 +150,7 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
     
     if need_collection:
         head = []
+        head_color = []
         body = []
         body_type = []
         leg = []
@@ -164,19 +160,22 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
         body_colour = []
         leg_colour = []
         foot_colour = []
+        age = []        
         
         for vec in attr_vec_np:
             
             gender.append(vec[0])
             head.append(vec[1:6])
-            body.append(vec[15:18])
-            body_type.append(vec[18])
-            leg.append(vec[31:34])
-            foot.append(vec[43:46])
-            bags.append(vec[28:31])
-            body_colour.append(vec[19:28])
-            leg_colour.append(vec[34:43])
-            foot_colour.append(vec[46:])
+            head_color.append(vec[6:8])
+            body.append(vec[8:12])
+            body_type.append(vec[12])
+            body_colour.append(vec[13:21])
+            bags.append(vec[21:25])
+            leg.append(vec[25:28])
+            leg_colour.append(vec[28:37])
+            foot.append(vec[37:40])
+            foot_colour.append(vec[40:44])
+            age.append(vec[44:48])
             
         # one hot id vectors
         last_id = id_[-1]
@@ -191,6 +190,7 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
                     'attr_weights':torch.from_numpy(np.array(attr_weights)),
                     'img_names':np.array(img_names),
                     'head':torch.from_numpy(np.array(head)),
+                    'head_colour':torch.from_numpy(np.array(head_color)),
                     'body':torch.from_numpy(np.array(body)),
                     'body_type':torch.tensor(body_type),
                     'leg':torch.from_numpy(np.array(leg)),
@@ -200,15 +200,16 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
                     'body_colour':torch.from_numpy(np.array(body_colour)),
                     'leg_colour':torch.from_numpy(np.array(leg_colour)),
                     'foot_colour':torch.from_numpy(np.array(foot_colour)),
+                    'age':torch.from_numpy(np.array(age)),
                     'cam_id':cam_id}
     
         if need_collection and need_attr:
             return {'id':id1,
                     'id_weights':torch.from_numpy(np.array(ids_weights)),
-                    'attributes':attr_vec,
                     'attr_weights':torch.from_numpy(np.array(attr_weights)),
                     'img_names':np.array(img_names),
                     'head':torch.from_numpy(np.array(head)),
+                    'head_colour':torch.from_numpy(np.array(head_color)),
                     'body':torch.from_numpy(np.array(body)),
                     'body_type':torch.tensor(body_type),
                     'leg':torch.from_numpy(np.array(leg)),
@@ -218,7 +219,9 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
                     'body_colour':torch.from_numpy(np.array(body_colour)),
                     'leg_colour':torch.from_numpy(np.array(leg_colour)),
                     'foot_colour':torch.from_numpy(np.array(foot_colour)),
-                    'cam_id':cam_id}            
+                    'age':torch.from_numpy(np.array(age)),
+                    'attributes':attr_vec,
+                    'cam_id':cam_id}         
             
 
 
