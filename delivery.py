@@ -9,6 +9,18 @@ import numpy as np
 import torch
 import os 
 
+def unique(list1):
+ 
+    # initialize a null list
+    unique_list = []
+     
+    # traverse for all elements
+    for x in list1:
+        # check if exists in unique_list or not
+        if x not in unique_list:
+            unique_list.append(x)
+    return len(unique_list)
+            
 def data_delivery(main_path,
                   path_attr=None,
                   path_start=None,
@@ -21,7 +33,7 @@ def data_delivery(main_path,
                   mode = 'CA_Market'):
     '''
     
-
+mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
     Parameters
     ----------
     main_path : TYPE string
@@ -74,6 +86,8 @@ def data_delivery(main_path,
     img_names = np.array(img_names)
     if double:
         img_names = list(np.append(img_names,img_names,axis=0))
+
+
         
         # ids & ids_weights
     id_ = []
@@ -83,14 +97,27 @@ def data_delivery(main_path,
         id_.append(int(b[0])-1)
         cam_id.append(int(b[1][1]))
     cam_id = np.array(cam_id)
+    num_ids = unique(id_)
     id_ = torch.from_numpy(np.array(id_))# becuase list doesnt take a list of indexes it should be slice or inegers.
+    id1 = torch.zeros((len(id_),num_ids))
     
-    # one hot id vectors
-    last_id = id_[-1]
-    id1 = torch.zeros((len(id_),last_id+1))
-    for i in range(len(id1)):
-        a = id_[i]
-        id1[i,a] = 1
+    sample = id_[0]
+    i = 0
+    if mode == 'Duke_attribute':
+        for j in range(len(id1)):
+            if sample == id_[j]:
+               id1[j, i] = 1
+            else:
+                i += 1
+                sample = id_[j]
+                id1[j, i] = 1      
+    else:            
+        # one hot id vectors
+        last_id = id_[-1]
+        id1 = torch.zeros((len(id_),last_id+1))
+        for i in range(len(id1)):
+            a = id_[i]
+            id1[i,a] = 1
         
     # numbers = torch.unique(id_) # return individual numbers in a tensor
     sum_ids_train = torch.sum(id1, axis=0)
@@ -106,7 +133,7 @@ def data_delivery(main_path,
     
     if mode == 'CA_Market':
         attr_vec =  np.delete(attr_vec_np, slice(6,15), axis=1)
-    elif mode == 'Market_attribute':
+    else:
         attr_vec = attr_vec_np
     attr_vec = torch.from_numpy(attr_vec)
     sum_attr_train = torch.sum(attr_vec, axis=0)
