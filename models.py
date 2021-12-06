@@ -10,14 +10,6 @@ that are define for person-attribute detection.
 this is Hossein Bodaghies thesis 
 """
 
-'''
-*
-
-when load a pretrained model from torchreid it just brings imagenet trained models
-so if we want to bring pretrained on other datasets we should use this function
-
-'''
-
 import torch.nn as nn
 import torch
 
@@ -129,67 +121,148 @@ class mb_build_model(nn.Module):
                                             self.sep_conv_size,
                                             reduce_spatial_size=False
                                         )        
+        else:
+            # head
+            self.conv_head = None
+            # body
+            self.conv_body = None          
+            # leg
+            self.conv_leg = None               
+            # foot
+            self.conv_foot = None           
+            # gender & age
+            self.conv_general = None
+            # bags
+            self.conv_bags = None       
+            
         # fully connecteds
         if self.sep_fc:
             # head
             self.head_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
             self.head_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)           
+            self.head_fcc = []
+            self.head_fcc.append(self.head_fc)
+            self.head_fcc.append(self.head_color_fc)
             # upper body
             self.body_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
             self.body_type_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
             self.body_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
+            self.upper_body_fcc = []
+            self.upper_body_fcc.append(self.body_fc)
+            self.upper_body_fcc.append(self.body_type_fc )
+            self.upper_body_fcc.append(self.body_color_fc) 
             #lower body
             self.leg_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
             self.leg_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
+            self.lower_body_fcc = []
+            self.lower_body_fcc.append(self.leg_fc)
+            self.lower_body_fcc.append(self.leg_color_fc) 
             #foot
             self.foot_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
             self.foot_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
+            self.foot_fcc = []
+            self.foot_fcc.append(self.foot_fc)
+            self.foot_fcc.append(self.foot_color_fc)   
             #bags
             self.bag_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
+            self.bag_fcc = []
+            self.bag_fcc.append(self.bag_fc)     
             # general
             self.age_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
             self.gender_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+            self.general_fcc = []
+            self.general_fcc.append(self.age_fc)
+            self.general_fcc.append(self.gender_fc)
         else:
             # head
             self.head_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)                        
+            self.head_fcc = []
+            self.head_fcc.append(self.head_fc) 
             # upper body
             self.body_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+            self.upper_body_fcc = []
+            self.upper_body_fcc.append(self.body_fc)  
             #lower body
             self.leg_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+            self.lower_body_fcc = []
+            self.lower_body_fcc.append(self.leg_fc) 
             #foot
             self.foot_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+            self.foot_fcc = []
+            self.foot_fcc.append(self.foot_fc)  
             #bags
             self.bag_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p) 
+            self.bag_fcc = []
+            self.bag_fcc.append(self.bag_fc)  
             # general
-            self.age_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+            self.general_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+            self.general_fcc = []
+            self.general_fcc.append(self.general_fc)  
             
         # classifiers
-        # head
-        self.head_clf = nn.Linear(self.attr_dim, 5)
-        # head color
-        self.head_color_clf = nn.Linear(self.attr_dim, 2)
-        # body
-        self.body_clf = nn.Linear(self.attr_dim, 4)
-        # body type
-        self.body_type_clf = nn.Linear(self.attr_dim, 1)
-        # body_color
-        self.body_color_clf = nn.Linear(self.attr_dim, 8)
-        # leg
-        self.leg_clf = nn.Linear(self.attr_dim, 3)
-        # leg_color
-        self.leg_color_clf = nn.Linear(self.attr_dim, 9)
-        # foot
-        self.foot_clf = nn.Linear(self.attr_dim, 3)
-        # foot color
-        self.foot_color_clf = nn.Linear(self.attr_dim, 4)
-        # bag
-        self.bag_clf = nn.Linear(self.attr_dim, 4)
-        # gender
-        self.gender_clf = nn.Linear(self.attr_dim, 1)        
-        # age
-        self.age_clf = nn.Linear(self.attr_feat_dim, 4)
-        
-     
+        if self.sep_clf:
+            # head
+            self.head_clf = nn.Linear(self.attr_dim, 5)
+            self.head_color_clf = nn.Linear(self.attr_dim, 2)
+            self.head_clff = []
+            self.head_clff.append(self.head_clf)
+            self.head_clff.append(self.head_color_clf)
+            # body
+            self.body_clf = nn.Linear(self.attr_dim, 4)
+            self.body_type_clf = nn.Linear(self.attr_dim, 1)
+            self.body_color_clf = nn.Linear(self.attr_dim, 8)
+            self.upper_body_clff = []
+            self.upper_body_clff.append(self.body_clf)
+            self.upper_body_clff.append(self.body_type_clf )
+            self.upper_body_clff.append(self.body_color_clf) 
+            # leg
+            self.leg_clf = nn.Linear(self.attr_dim, 3)
+            self.leg_color_clf = nn.Linear(self.attr_dim, 9)
+            self.lower_body_clff = []
+            self.lower_body_clff.append(self.leg_clf)
+            self.lower_body_clff.append(self.leg_color_clf) 
+            # foot
+            self.foot_clf = nn.Linear(self.attr_dim, 3)
+            self.foot_color_clf = nn.Linear(self.attr_dim, 4)
+            self.foot_clff = []
+            self.foot_clff.append(self.foot_clf)
+            self.foot_clff.append(self.foot_color_clf) 
+            # bag
+            self.bag_clf = nn.Linear(self.attr_dim, 4)
+            self.bag_clff = []
+            self.bag_clff.append(self.bag_clf)  
+            # gender
+            self.age_clf = nn.Linear(self.attr_feat_dim, 4)
+            self.gender_clf = nn.Linear(self.attr_dim, 1)                    
+            self.general_clff = []
+            self.general_clff.append(self.age_clf)
+            self.general_clff.append(self.gender_clf)
+        else:
+            # head
+            self.head_clf = nn.Linear(self.attr_dim, 7)
+            self.head_clff = []
+            self.head_clff.append(self.head_clf)           
+            # body
+            self.body_clf = nn.Linear(self.attr_dim, 13)
+            self.upper_body_clff = []
+            self.upper_body_clff.append(self.body_clf)          
+            # leg
+            self.leg_clf = nn.Linear(self.attr_dim, 12)
+            self.lower_body_clff = []
+            self.lower_body_clff.append(self.leg_clf)     
+            # foot
+            self.foot_clf = nn.Linear(self.attr_dim, 7)
+            self.foot_clff = []
+            self.foot_clff.append(self.foot_clf)
+            # bag
+            self.bag_clf = nn.Linear(self.attr_dim, 4)
+            self.bag_clff = []
+            self.bag_clff.append(self.bag_clf)  
+            # gender
+            self.general_clf = nn.Linear(self.attr_feat_dim, 5)                 
+            self.general_clff = []
+            self.general_clff.append(self.general_clf)
+    
     def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
         if fc_dims is None or fc_dims < 0:
             self.feature_dim = input_dim
@@ -249,16 +322,16 @@ class mb_build_model(nn.Module):
     def fc2clf(self, x, fc_layer, clf_layer, sep_clf=False, sep_fc=False, need_feature=False):
 
         fc_out = []
-        clf_put = []        
+        clf_out = []        
         if sep_fc:
             for i,fc in enumerate(fc_layer):
                 feature = fc(x)
                 fc_out.append(feature)
-                clf_put.append(clf_layer[i](feature))
+                clf_out.append(clf_layer[i](feature))
             if need_feature:
                 return fc_out
             else:
-                return clf_put                
+                return clf_out                
         else:
             fc_out.append(fc_layer[0](x))
             if need_feature:
@@ -266,11 +339,11 @@ class mb_build_model(nn.Module):
             else:
                 if sep_clf:
                     for clf in clf_layer:
-                       clf_put.append(clf(fc_out[0]))
-                    return clf_put
+                       clf_out.append(clf(fc_out[0]))
+                    return clf_out
                 else:
-                    clf_put.append(clf_layer[0](fc_out[0]))
-                    return clf_put
+                    clf_out.append(clf_layer[0](fc_out[0]))
+                    return clf_out
                 
     def attr_branch(self, x, fc_layer, clf_layer,
                     conv_layer=None, sep_fc=False,
@@ -292,54 +365,8 @@ class mb_build_model(nn.Module):
     def forward(self, x):
         out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
         out_attributes = {}
-
-        if self.sep_fc:
-            # head
-            head_fcc = []
-            head_fcc.append(self.head_fc)
-            head_fcc.append(self.head_color_fc)
-            # upper body
-            upper_body_fcc = []
-            upper_body_fcc.append(self.body_fc)
-            upper_body_fcc.append(self.body_type_fc )
-            upper_body_fcc.append(self.body_color_fc)   
-            #lower_body
-            lower_body_fcc = []
-            lower_body_fcc.append(self.leg_fc)
-            lower_body_fcc.append(self.leg_color_fc)             
-            #foot
-            foot_fcc = []
-            foot_fcc.append(self.foot_fc)
-            foot_fcc.append(self.foot_color_fc)   
-            #bags
-            bag_fcc = []
-            bag_fcc.append(self.bag_fc)       
-            # general
-            general_fcc = []
-            general_fcc.append(self.age_fc)
-            general_fcc.append(self.gender_fc)
-        else:
-            # head
-            head_fcc = []
-            head_fcc.append(self.head_fc) 
-            # upper body
-            upper_body_fcc = []
-            upper_body_fcc.append(self.body_fc)  
-            #lower_body
-            lower_body_fcc = []
-            lower_body_fcc.append(self.leg_fc)            
-            #foot
-            foot_fcc = []
-            foot_fcc.append(self.foot_fc)  
-            #bags
-            bag_fcc = []
-            bag_fcc.append(self.bag_fc)       
-            # general
-            general_fcc = []
-            general_fcc.append(self.age_fc)
-            
-        out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf) 
-        #out_head_colour = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf)          
+        out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fcc, self.head_clf) 
+        out_head_colour = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf)          
         out_body = self.attr_branch(out_conv4, self.conv_body, self.body_fc, self.body_clf)     
         out_body_type = self.attr_branch(out_conv4, self.conv_body_type, self.body_type_fc, self.body_type_clf)          
         out_leg = self.attr_branch(out_conv4, self.conv_leg ,self.leg_fc, self.leg_clf)           
