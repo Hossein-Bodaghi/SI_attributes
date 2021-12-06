@@ -89,8 +89,7 @@ class mb_build_model(nn.Module):
                                             reduce_spatial_size=False
                                         )            
             # leg
-            self.conv_leg = _make_layer(
-                                            blocks[2],
+            self.conv_leg = _make_layer(    blocks[2],
                                             layers[2],
                                             self.feature_dim,
                                             self.sep_conv_size,
@@ -106,7 +105,7 @@ class mb_build_model(nn.Module):
                                         )            
             
             # gender & age
-            self.conv_gender_age = _make_layer(
+            self.conv_general = _make_layer(
                                             blocks[2],
                                             layers[2],
                                             self.feature_dim,
@@ -362,22 +361,47 @@ class mb_build_model(nn.Module):
                           need_feature=need_feature)
         return out 
     
-    def forward(self, x):
+    def forward(self, x, need_feature=False):
         out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
         out_attributes = {}
-        out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fcc, self.head_clf) 
-        out_head_colour = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf)          
-        out_body = self.attr_branch(out_conv4, self.conv_body, self.body_fc, self.body_clf)     
-        out_body_type = self.attr_branch(out_conv4, self.conv_body_type, self.body_type_fc, self.body_type_clf)          
-        out_leg = self.attr_branch(out_conv4, self.conv_leg ,self.leg_fc, self.leg_clf)           
-        out_foot = self.attr_branch(out_conv4, self.conv_foot, self.foot_fc, self.foot_clf)            
-        out_gender = self.attr_branch(out_conv4, self.conv_gender, self.gender_fc, self.gender_clf)             
-        out_bags = self.attr_branch(out_conv4, self.conv_bags, self.bags_fc, self.bags_clf)            
-        out_body_colour = self.attr_branch(out_conv4, self.conv_body_color, self.body_color_fc, self.body_color_clf)             
-        out_leg_colour = self.attr_branch(out_conv4, self.conv_leg_color, self.leg_color_fc, self.leg_color_clf)              
-        out_foot_colour = self.attr_branch(out_conv4, self.conv_foot_color, self.foot_color_fc, self.foot_color_clf) 
-        # out_age = self.attr_branch(out_conv4, self.conv_foot_color, self.foot_color_fc, self.foot_color_clf)
-        # out_attributes.update({'head':out_head,
+        if self.sep_clf:
+            # head
+            out_head, out_head_colour = self.attr_branch(out_conv4, fc_layer = self.head_fcc,
+                                                         clf_layer = self.head_clff,
+                                                         conv_layer = self.conv_head,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature) 
+            # upper body
+            out_body, out_body_type, out_body_colour = self.attr_branch(out_conv4, fc_layer = self.upper_body_fcc,
+                                                         clf_layer = self.upper_body_clff,
+                                                         conv_layer = self.conv_body,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)
+            # lower body
+            out_leg, out_leg_colour = self.attr_branch(out_conv4, fc_layer = self.lower_body_fcc,
+                                                         clf_layer = self.lower_body_clff,
+                                                         conv_layer = self.conv_leg,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)
+            # foot
+            out_foot, out_foot_colour = self.attr_branch(out_conv4, fc_layer = self.foot_fcc,
+                                                         clf_layer = self.foot_clff,
+                                                         conv_layer = self.conv_foot,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)
+            # bag
+            out_bags = self.attr_branch(out_conv4, fc_layer = self.bag_fcc,
+                                                         clf_layer = self.bag_clff,
+                                                         conv_layer = self.conv_bags,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)[0]
+            # general
+            out_age, out_gender = self.attr_branch(out_conv4, fc_layer = self.general_fcc,
+                                                         clf_layer = self.general_clff,
+                                                         conv_layer = self.conv_general,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)
+        out_attributes.update({'head':out_head,
                                  'head_colour':out_head_colour,
                                  'body':out_body,
                                  'body_type':out_body_type,
