@@ -49,19 +49,15 @@ class mb_build_model(nn.Module):
     
     def __init__(self,
                  model,
-                 num_id,
                  main_cov_size = 512,
-                 attr_feat_dim = 128,
                  attr_dim = 128,
                  dropout_p = 0.3,
                  sep_conv_size = None,
                  sep_fc = False,
                  sep_clf = False):
         
-        super().__init__()
-        
+        super().__init__()        
         self.feature_dim = main_cov_size
-        self.attr_feat_dim = attr_feat_dim
         self.dropout_p = dropout_p 
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         self.softmax = nn.Softmax(dim=1)
@@ -73,6 +69,7 @@ class mb_build_model(nn.Module):
         self.sep_clf = sep_clf
         # convs
         if self.sep_conv_size:
+            self.attr_feat_dim = sep_conv_size
             # head
             self.conv_head = _make_layer(blocks[2],
                                         layers[2],
@@ -121,6 +118,7 @@ class mb_build_model(nn.Module):
                                             reduce_spatial_size=False
                                         )        
         else:
+            self.attr_feat_dim = main_cov_size
             # head
             self.conv_head = None
             # body
@@ -324,7 +322,7 @@ class mb_build_model(nn.Module):
         clf_out = []        
         if sep_fc:
             for i,fc in enumerate(fc_layer):
-                feature = fc(x)
+                feature = fc_layer[i](x)
                 fc_out.append(feature)
                 clf_out.append(clf_layer[i](feature))
             if need_feature:

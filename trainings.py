@@ -1646,6 +1646,7 @@ def dict_training_fastreid(num_epoch,
             else:
                 print('\ntest f1 improved')
                 
+
 #%%
 def dict_training_multi_branch(num_epoch,
                      attr_net,
@@ -1717,55 +1718,63 @@ def dict_training_multi_branch(num_epoch,
             # head 
             loss0 = cce_loss(out_data['head'], data['head'].argmax(dim=1))  
             y_head = tensor_max(softmax(out_data['head']))
+
+            # head_color
+            loss1 = cce_loss(out_data['head_colour'], data['head_colour'].argmax(dim=1))  
+            y_head_colour = tensor_max(softmax(out_data['head_colour']))
             
             # body
-            loss1 = cce_loss(out_data['body'],data['body'].argmax(dim=1))
+            loss2 = cce_loss(out_data['body'],data['body'].argmax(dim=1))
             y_body = tensor_max(softmax(out_data['body']))
             
             # body_type
-            loss2 = bce_loss(out_data['body_type'].squeeze(),data['body_type'].float())   
+            loss3 = bce_loss(out_data['body_type'].squeeze(),data['body_type'].float())   
             y_body_type = tensor_thresh(torch.sigmoid(out_data['body_type']), 0.5)
             
             # leg
-            loss3 = cce_loss(out_data['leg'],data['leg'].argmax(dim=1))
+            loss4 = cce_loss(out_data['leg'],data['leg'].argmax(dim=1))
             y_leg = tensor_max(softmax(out_data['leg']))
             
             # foot 
-            loss4 = cce_loss(out_data['foot'],data['foot'].argmax(dim=1))  
+            loss5 = cce_loss(out_data['foot'],data['foot'].argmax(dim=1))  
             y_foot = tensor_max(softmax(out_data['foot']))
             
             # gender
-            loss5 = bce_loss(out_data['gender'].squeeze(),data['gender'].float())
+            loss6= bce_loss(out_data['gender'].squeeze(),data['gender'].float())
             y_gender = tensor_thresh(torch.sigmoid(out_data['gender']), 0.5)
             
             # bags
-            loss6 = cce_loss(out_data['bags'],data['bags'].argmax(dim=1))
+            loss7 = cce_loss(out_data['bags'],data['bags'].argmax(dim=1))
             y_bags = tensor_max(softmax(out_data['bags']))
             
             # body_colour
-            loss7 = bce_loss(out_data['body_colour'],data['body_colour'].float())  
+            loss8 = bce_loss(out_data['body_colour'],data['body_colour'].float())  
             y_body_colour = tensor_thresh(torch.sigmoid(out_data['body_colour']), 0.5)
             
             # leg_colour
-            loss8 = cce_loss(out_data['leg_colour'],data['leg_colour'].argmax(dim=1))
+            loss9 = cce_loss(out_data['leg_colour'],data['leg_colour'].argmax(dim=1))
             y_leg_colour = tensor_max(softmax(out_data['leg_colour']))
             
             # foot_colour
-            loss9 = cce_loss(out_data['foot_colour'],data['foot_colour'].argmax(dim=1))
+            loss10 = cce_loss(out_data['foot_colour'],data['foot_colour'].argmax(dim=1))
             y_foot_colour = tensor_max(softmax(out_data['foot_colour']))
             
-            y_attr = torch.cat((y_gender, y_head, y_body, 
+            # age
+            loss11 = cce_loss(out_data['age'],data['age'].argmax(dim=1))
+            y_age = tensor_max(softmax(out_data['age']))
+            
+            y_attr = torch.cat((y_gender, y_head, y_head_colour, y_body, 
                                 y_body_type, y_body_colour,
                                 y_bags, y_leg, y_leg_colour,
-                                y_foot, y_foot_colour), dim=1)
+                                y_foot, y_foot_colour, y_age), dim=1) 
                 
-            y_target = torch.cat((data['gender'].unsqueeze(dim=1), data['head'],
+            y_target = torch.cat((data['gender'].unsqueeze(dim=1), data['head'], data['head_colour'],
                                   data['body'], data['body_type'].unsqueeze(dim=1),
                                   data['body_colour'], data['bags'],
                                   data['leg'], data['leg_colour'],
-                                  data['foot'], data['foot_colour']), dim=1)                
+                                  data['foot'], data['foot_colour'], data['age']), dim=1)                
             # total loss
-            loss = loss0+loss1+loss2+loss3+loss4+loss5+loss6+loss7+loss8+loss9
+            loss = loss0+loss1+loss2+loss3+loss4+loss5+loss6+loss7+loss8+loss9+loss10+loss11
             # evaluation    
             train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
             # append results
@@ -1804,55 +1813,63 @@ def dict_training_multi_branch(num_epoch,
                 # head 
                 loss0 = cce_loss(out_data['head'], data['head'].argmax(dim=1))  
                 y_head = tensor_max(softmax(out_data['head']))
+
+                # head_color
+                loss1 = cce_loss(out_data['head_colour'], data['head_colour'].argmax(dim=1))  
+                y_head_colour = tensor_max(softmax(out_data['head_colour']))  
                 
                 # body
-                loss1 = cce_loss(out_data['body'],data['body'].argmax(dim=1))
+                loss2 = cce_loss(out_data['body'],data['body'].argmax(dim=1))
                 y_body = tensor_max(softmax(out_data['body']))
                 
                 # body_type
-                loss2 = bce_loss(out_data['body_type'].squeeze(),data['body_type'].float())   
+                loss3 = bce_loss(out_data['body_type'].squeeze(),data['body_type'].float())   
                 y_body_type = tensor_thresh(torch.sigmoid(out_data['body_type']), 0.5)
                 
                 # leg
-                loss3 = cce_loss(out_data['leg'],data['leg'].argmax(dim=1))
+                loss4 = cce_loss(out_data['leg'],data['leg'].argmax(dim=1))
                 y_leg = tensor_max(softmax(out_data['leg']))
                 
                 # foot 
-                loss4 = cce_loss(out_data['foot'],data['foot'].argmax(dim=1))  
+                loss5 = cce_loss(out_data['foot'],data['foot'].argmax(dim=1))  
                 y_foot = tensor_max(softmax(out_data['foot']))
                 
                 # gender
-                loss5 = bce_loss(out_data['gender'].squeeze(),data['gender'].float())
+                loss6 = bce_loss(out_data['gender'].squeeze(),data['gender'].float())
                 y_gender = tensor_thresh(torch.sigmoid(out_data['gender']), 0.5)
                 
                 # bags
-                loss6 = cce_loss(out_data['bags'],data['bags'].argmax(dim=1))
+                loss7 = cce_loss(out_data['bags'],data['bags'].argmax(dim=1))
                 y_bags = tensor_max(softmax(out_data['bags']))
                 
                 # body_colour
-                loss7 = bce_loss(out_data['body_colour'],data['body_colour'].float())  
+                loss8 = bce_loss(out_data['body_colour'],data['body_colour'].float())  
                 y_body_colour = tensor_thresh(torch.sigmoid(out_data['body_colour']), 0.5)
                 
                 # leg_colour
-                loss8 = cce_loss(out_data['leg_colour'],data['leg_colour'].argmax(dim=1))
+                loss9 = cce_loss(out_data['leg_colour'],data['leg_colour'].argmax(dim=1))
                 y_leg_colour = tensor_max(softmax(out_data['leg_colour']))
                 
                 # foot_colour
-                loss9 = cce_loss(out_data['foot_colour'],data['foot_colour'].argmax(dim=1))
+                loss10 = cce_loss(out_data['foot_colour'],data['foot_colour'].argmax(dim=1))
                 y_foot_colour = tensor_max(softmax(out_data['foot_colour']))
+
+                # age
+                loss11 = cce_loss(out_data['age'],data['age'].argmax(dim=1))
+                y_age = tensor_max(softmax(out_data['age']))
                 
-                y_attr = torch.cat((y_gender, y_head, y_body, 
+                y_attr = torch.cat((y_gender, y_head, y_head_colour, y_body, 
                                     y_body_type, y_body_colour,
                                     y_bags, y_leg, y_leg_colour,
-                                    y_foot, y_foot_colour), dim=1)
+                                    y_foot, y_foot_colour, y_age), dim=1)
                     
-                y_target = torch.cat((data['gender'].unsqueeze(dim=1), data['head'],
+                y_target = torch.cat((data['gender'].unsqueeze(dim=1), data['head'], data['head_colour'],
                                       data['body'], data['body_type'].unsqueeze(dim=1),
                                       data['body_colour'], data['bags'],
                                       data['leg'], data['leg_colour'],
-                                      data['foot'], data['foot_colour']), dim=1)                                            
+                                      data['foot'], data['foot_colour'], data['age']), dim=1)                                            
                 # total loss
-                loss = loss0+loss1+loss2+loss3+loss4+loss5+loss6+loss7+loss8+loss9
+                loss = loss0+loss1+loss2+loss3+loss4+loss5+loss6+loss7+loss8+loss9+loss10+loss11
                     
                 test_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 ft_test.append(test_attr_metrics[-2])
@@ -1869,46 +1886,28 @@ def dict_training_multi_branch(num_epoch,
         
         # saving training results
         saving_path = os.path.join(save_path, version)
-        if os.path.exists(saving_path):
-            
-            torch.save(train_loss, os.path.join(saving_path, 'train_loss.pth'))
-            torch.save(F1_train, os.path.join(saving_path, 'train_attr_f1.pth'))
-            torch.save(Acc_train, os.path.join(saving_path, 'train_attr_acc.pth'))
-                       
-            torch.save(test_loss, os.path.join(saving_path, 'test_attr_loss.pth'))
-            torch.save(F1_test, os.path.join(saving_path, 'test_attr_f1.pth'))
-            torch.save(Acc_test, os.path.join(saving_path, 'test_attr_acc.pth'))           
-
-            torch.save(attr_net, os.path.join(saving_path, 'attr_net.pth'))
-            torch.save(optimizer.state_dict(), os.path.join(saving_path, 'optimizer.pth')) 
-            torch.save(scheduler.state_dict(), os.path.join(saving_path, 'scheduler.pth'))
-            torch.save(epoch, os.path.join(saving_path, 'training_epoch.pth'))
-            attr_net.save_baseline(saving_path, 'baseline')
-            
-        else:
+        if not os.path.exists(saving_path):
             os.mkdir(saving_path)
             
-            torch.save(train_loss, os.path.join(saving_path, 'train_loss.pth'))
-            torch.save(F1_train, os.path.join(saving_path, 'train_attr_f1.pth'))
-            torch.save(Acc_train, os.path.join(saving_path, 'train_attr_acc.pth'))
-                       
-            torch.save(test_loss, os.path.join(saving_path, 'test_attr_loss.pth'))
-            torch.save(F1_test, os.path.join(saving_path, 'test_attr_f1.pth'))
-            torch.save(Acc_test, os.path.join(saving_path, 'test_attr_acc.pth'))           
+        torch.save(train_loss, os.path.join(saving_path, 'train_loss.pth'))
+        torch.save(F1_train, os.path.join(saving_path, 'train_attr_f1.pth'))
+        torch.save(Acc_train, os.path.join(saving_path, 'train_attr_acc.pth'))
+                   
+        torch.save(test_loss, os.path.join(saving_path, 'test_attr_loss.pth'))
+        torch.save(F1_test, os.path.join(saving_path, 'test_attr_f1.pth'))
+        torch.save(Acc_test, os.path.join(saving_path, 'test_attr_acc.pth'))           
 
-            torch.save(attr_net, os.path.join(saving_path, 'attr_net.pth'))
-            torch.save(optimizer.state_dict(), os.path.join(saving_path, 'optimizer.pth')) 
-            torch.save(scheduler.state_dict(), os.path.join(saving_path, 'scheduler.pth'))
-            torch.save(epoch, os.path.join(saving_path, 'training_epoch.pth'))
-            
-        
+        torch.save(attr_net, os.path.join(saving_path, 'attr_net.pth'))
+        torch.save(optimizer.state_dict(), os.path.join(saving_path, 'optimizer.pth')) 
+        torch.save(scheduler.state_dict(), os.path.join(saving_path, 'scheduler.pth'))
+        torch.save(epoch, os.path.join(saving_path, 'training_epoch.pth'))            
+                    
         d = 0
         if test_loss[-1] < loss_min: 
             loss_min = test_loss[-1]
             d += 1
-            torch.save(attr_net, os.path.join(saving_path, 'best_attr_net.pth'))
+            torch.save(attr_net.state_dict(), os.path.join(saving_path, 'best_attr_net.pth'))
             torch.save(epoch, os.path.join(saving_path, 'best_epoch.pth'))
-            attr_net.save_baseline(saving_path, 'best_baseline')
             print('test loss improved')
             
         if F1_test[-1] > f1_best: 
