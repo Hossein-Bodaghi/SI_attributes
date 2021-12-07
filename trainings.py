@@ -11,12 +11,10 @@ this is Hossein Bodaghies thesis
 """
 import torch
 import numpy as np
-from metrics import tensor_metrics, boolian_metrics, category_metrics
-import gc
+from metrics import tensor_metrics
 import time
 import os
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# device = 'cpu'
 
 #%%
 '''
@@ -52,9 +50,25 @@ def id_onehot(id_,num_id):
         id1[i,a-1] = 1
     return id1
 
+
 softmax = torch.nn.Softmax(dim=1)
 
 #%%
+def loss_calculator(out_data, data,cce_loss,bce_loss):
+    attr_loss = []
+    loss_head = cce_loss(out_data['head'], data['head'].argmax(dim=1)) 
+    loss_head_colour = cce_loss(out_data['head_colour'], data['head_colour'].argmax(dim=1))
+    loss_body = cce_loss(out_data['body'],data['body'].argmax(dim=1))
+    loss_body_type = bce_loss(out_data['body_type'].squeeze(),data['body_type'].float())  
+    loss_leg = cce_loss(out_data['leg'],data['leg'].argmax(dim=1))
+    loss_foot = cce_loss(out_data['foot'],data['foot'].argmax(dim=1)) 
+    loss_gender= bce_loss(out_data['gender'].squeeze(),data['gender'].float())
+    loss_bag = cce_loss(out_data['bags'],data['bags'].argmax(dim=1))
+    loss_body_colour = bce_loss(out_data['body_colour'],data['body_colour'].float())  
+    loss_leg_colour = cce_loss(out_data['leg_colour'],data['leg_colour'].argmax(dim=1))
+    loss_foot_colour = cce_loss(out_data['foot_colour'],data['foot_colour'].argmax(dim=1))
+    loss_age = cce_loss(out_data['age'],data['age'].argmax(dim=1))
+
 def dict_training_multi_branch(num_epoch,
                      attr_net,
                      train_loader,
@@ -123,52 +137,33 @@ def dict_training_multi_branch(num_epoch,
             
             # compute losses and evaluation metrics:
             # head 
-            loss0 = cce_loss(out_data['head'], data['head'].argmax(dim=1))  
-            y_head = tensor_max(softmax(out_data['head']))
 
+
+            y_head = tensor_max(softmax(out_data['head']))
             # head_color
-            loss1 = cce_loss(out_data['head_colour'], data['head_colour'].argmax(dim=1))  
-            y_head_colour = tensor_max(softmax(out_data['head_colour']))
-            
+            y_head_colour = tensor_max(softmax(out_data['head_colour']))           
             # body
-            loss2 = cce_loss(out_data['body'],data['body'].argmax(dim=1))
-            y_body = tensor_max(softmax(out_data['body']))
-            
+            y_body = tensor_max(softmax(out_data['body']))           
             # body_type
-            loss3 = bce_loss(out_data['body_type'].squeeze(),data['body_type'].float())   
-            y_body_type = tensor_thresh(torch.sigmoid(out_data['body_type']), 0.5)
-            
+            y_body_type = tensor_thresh(torch.sigmoid(out_data['body_type']), 0.5)           
             # leg
-            loss4 = cce_loss(out_data['leg'],data['leg'].argmax(dim=1))
-            y_leg = tensor_max(softmax(out_data['leg']))
-            
+            y_leg = tensor_max(softmax(out_data['leg']))            
             # foot 
-            loss5 = cce_loss(out_data['foot'],data['foot'].argmax(dim=1))  
-            y_foot = tensor_max(softmax(out_data['foot']))
-            
+            y_foot = tensor_max(softmax(out_data['foot']))            
             # gender
-            loss6= bce_loss(out_data['gender'].squeeze(),data['gender'].float())
-            y_gender = tensor_thresh(torch.sigmoid(out_data['gender']), 0.5)
-            
+            y_gender = tensor_thresh(torch.sigmoid(out_data['gender']), 0.5)            
             # bags
-            loss7 = cce_loss(out_data['bags'],data['bags'].argmax(dim=1))
-            y_bags = tensor_max(softmax(out_data['bags']))
-            
+            y_bags = tensor_max(softmax(out_data['bags']))            
             # body_colour
-            loss8 = bce_loss(out_data['body_colour'],data['body_colour'].float())  
-            y_body_colour = tensor_thresh(torch.sigmoid(out_data['body_colour']), 0.5)
-            
+            y_body_colour = tensor_thresh(torch.sigmoid(out_data['body_colour']), 0.5)           
             # leg_colour
-            loss9 = cce_loss(out_data['leg_colour'],data['leg_colour'].argmax(dim=1))
-            y_leg_colour = tensor_max(softmax(out_data['leg_colour']))
-            
+            y_leg_colour = tensor_max(softmax(out_data['leg_colour']))            
             # foot_colour
-            loss10 = cce_loss(out_data['foot_colour'],data['foot_colour'].argmax(dim=1))
-            y_foot_colour = tensor_max(softmax(out_data['foot_colour']))
-            
+            y_foot_colour = tensor_max(softmax(out_data['foot_colour']))            
             # age
-            loss11 = cce_loss(out_data['age'],data['age'].argmax(dim=1))
             y_age = tensor_max(softmax(out_data['age']))
+            # total loss
+            loss = loss0+loss1+loss2+loss3+loss4+loss5+loss6+loss7+loss8+loss9+loss10+loss11
             
             y_attr = torch.cat((y_gender, y_head, y_head_colour, y_body, 
                                 y_body_type, y_body_colour,
@@ -180,8 +175,7 @@ def dict_training_multi_branch(num_epoch,
                                   data['body_colour'], data['bags'],
                                   data['leg'], data['leg_colour'],
                                   data['foot'], data['foot_colour'], data['age']), dim=1)                
-            # total loss
-            loss = loss0+loss1+loss2+loss3+loss4+loss5+loss6+loss7+loss8+loss9+loss10+loss11
+
             # evaluation    
             train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
             # append results

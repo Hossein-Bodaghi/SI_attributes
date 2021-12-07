@@ -85,7 +85,7 @@ model = models.build_model(
 
 weight_path = '/home/hossein/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
 utils.load_pretrained_weights(model, weight_path)
-
+# sep_fc = True and sep_clf = False is not possible
 attr_net = mb_build_model(model = model,
                  main_cov_size = 512,
                  attr_dim = 128,
@@ -95,18 +95,7 @@ attr_net = mb_build_model(model = model,
                  sep_clf = True)
 
 attr_net = attr_net.to(device)
-#%%
-img = test_data[0]['img']
-img = torch.unsqueeze(img, dim=0)
 
-img1 = test_data[1]['img']
-img1 = torch.unsqueeze(img1, dim=0)
-
-img2 = torch.cat([img, img1], dim=0)
-
-img2 = img2.to(device)
-
-out = attr_net(img2)
 #%%
 criterion1 = nn.CrossEntropyLoss()
 criterion2 = nn.BCEWithLogitsLoss()
