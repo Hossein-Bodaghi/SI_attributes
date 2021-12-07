@@ -317,6 +317,10 @@ def dict_training_multi_branch(num_epoch,
                 print('test f1 improved')
             else:
                 print('\ntest f1 improved')
-                
+            
+            if d ==0:
+                print('test f1 improved')
+            else:
+                print('\ntest f1 improved')			
 
 
