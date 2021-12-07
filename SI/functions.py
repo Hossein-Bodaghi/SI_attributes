@@ -128,9 +128,21 @@ def pca_converter(out_layers):
     return out_layers
 
 
-def forward_selection_SI(out_layers, label):
-    import time
+def layers_num_corrector(layers):
 
+    import numpy as np
+    to_add = np.zeros(len(layers), dtype=np.int8)
+    for i in range(layers.shape[0]):
+        for j in range(i):
+            if layers[j]<=layers[i]:
+                to_add[i]+=1
+
+    final = to_add + layers
+    return final
+
+def forward_selection_SI(out_layers, label):
+
+    import time
     si = []
     layer_nums = []
     trend = []
@@ -169,4 +181,6 @@ def forward_selection_SI(out_layers, label):
         print('time: '+"{:.2f}".format(time.time()-t)+'s')
         torch.cuda.empty_cache()
 
+    layer_nums = layers_num_corrector(layer_nums)
+    
     return trend, layer_nums
