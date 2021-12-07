@@ -399,18 +399,61 @@ class mb_build_model(nn.Module):
                                                          conv_layer = self.conv_general,
                                                          sep_fc = self.sep_fc, sep_clf = self.sep_clf,
                                                          need_feature = need_feature)
-        out_attributes.update({'head':out_head,
-                                 'head_colour':out_head_colour,
-                                 'body':out_body,
-                                 'body_type':out_body_type,
-                                 'leg':out_leg,
-                                 'foot':out_foot,
-                                 'gender':out_gender,
-                                 'bags':out_bags,
-                                 'body_colour':out_body_colour,
-                                 'leg_colour':out_leg_colour,
-                                 'foot_colour':out_foot_colour,
-                                 'age':out_age})
+            out_attributes.update({'head':out_head,
+                                     'head_colour':out_head_colour,
+                                     'body':out_body,
+                                     'body_type':out_body_type,
+                                     'leg':out_leg,
+                                     'foot':out_foot,
+                                     'gender':out_gender,
+                                     'bags':out_bags,
+                                     'body_colour':out_body_colour,
+                                     'leg_colour':out_leg_colour,
+                                     'foot_colour':out_foot_colour,
+                                     'age':out_age})
+        else:
+            # head
+            out_head = self.attr_branch(out_conv4, fc_layer = self.head_fcc,
+                                                         clf_layer = self.head_clff,
+                                                         conv_layer = self.conv_head,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)[0]
+            # upper body
+            out_body = self.attr_branch(out_conv4, fc_layer = self.upper_body_fcc,
+                                                         clf_layer = self.upper_body_clff,
+                                                         conv_layer = self.conv_body,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)[0]
+            # lower body
+            out_leg = self.attr_branch(out_conv4, fc_layer = self.lower_body_fcc,
+                                                         clf_layer = self.lower_body_clff,
+                                                         conv_layer = self.conv_leg,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)[0]
+            # foot
+            out_foot = self.attr_branch(out_conv4, fc_layer = self.foot_fcc,
+                                                         clf_layer = self.foot_clff,
+                                                         conv_layer = self.conv_foot,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)[0]
+            # bag
+            out_bags = self.attr_branch(out_conv4, fc_layer = self.bag_fcc,
+                                                         clf_layer = self.bag_clff,
+                                                         conv_layer = self.conv_bags,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)[0]
+            # general
+            out_general = self.attr_branch(out_conv4, fc_layer = self.general_fcc,
+                                                         clf_layer = self.general_clff,
+                                                         conv_layer = self.conv_general,
+                                                         sep_fc = self.sep_fc, sep_clf = self.sep_clf,
+                                                         need_feature = need_feature)[0]
+            out_attributes.update({'head':out_head,
+                                     'body':out_body,
+                                     'leg':out_leg,
+                                     'foot':out_foot,
+                                     'bags':out_bags,
+                                     'general':out_general})            
         return out_attributes
     
     def save_baseline(self, saving_path):

@@ -6,7 +6,6 @@ Created on Sun Dec  5 14:22:06 2021
 @author: hossein
 """
 
-
 from delivery import data_delivery
 from torchvision import transforms
 from loaders import CA_Loader
