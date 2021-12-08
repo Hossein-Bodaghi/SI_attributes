@@ -41,11 +41,13 @@ main_path = './Market-1501-v15.09.15/gt_bbox/'
 path_attr = './attributes/total_attr.npy'
 test_idx = torch.load('./attributes/test_idx_full.pth')
 
-indices = np.load('./results/layersleg.npy')
-indices = torch.from_numpy(indices).to(device)
+indices = np.load('./results/layershead.npy')
 
-import random
-test_idx = random.sample(test_idx, 300)
+from functions import layers_num_corrector
+
+#indices = layers_num_corrector(indices)
+
+indices = torch.from_numpy(indices).to(device)[0:20]
 
 attr = data_delivery(main_path=main_path,
                      path_attr=path_attr,
@@ -138,7 +140,7 @@ with torch.no_grad():
                                 width + GRID_SPACING:2*width + GRID_SPACING, :] = am
                         grid_img[:, 2*width + 2*GRID_SPACING:, :] = overlapped
 
-                        cv2.imwrite(osp.join('./Feature visualized/', 'person_'+str(batch_idx) +'.jpg'), overlapped)
+                        cv2.imwrite(osp.join('./Feature visualized', 'person_'+str(batch_idx) +'.jpg'), overlapped)
 
             if (batch_idx+1) % 10 == 0:
                 print(

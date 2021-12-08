@@ -140,8 +140,26 @@ def layers_num_corrector(layers):
     final = to_add + layers
     return final
 
-def forward_selection_SI(out_layers, label):
 
+def Plot_SI(layers, trend):
+        from matplotlib import pyplot as plt 
+
+        plt.style.use("ggplot")
+        plt.plot(trend)
+
+        for i in range(len(trend)):
+                plt.text(i, trend[i], '{:.2f}'.format(trend[i]))
+
+        plt.legend()
+        plt.title("Forward Selection")
+        plt.xlabel("Layers")
+        plt.ylabel("Separation Index")
+        plt.show()
+
+
+def forward_selection_SI(out_layers, label, clss):
+
+    import numpy as np
     import time
     si = []
     layer_nums = []
@@ -175,10 +193,15 @@ def forward_selection_SI(out_layers, label):
         out_layers = torch.cat((out_layers[:max_index],out_layers[max_index+1:]))
         out_layers = out_layers.transpose(0, 1)
 
+        trends = np.array(trend)
+        np.save('./results/trends'+clss+'.npy', trends)
+        numss = np.array(layer_nums)
+        np.save('./results/layers'+clss+'.npy', numss)
+
         if (len(trend) > 2) and (trend[-1] < trend[-2]):
             break
 
-        print('time: '+"{:.2f}".format(time.time()-t)+'s')
+        print('time for each forward select: '+"{:.2f}".format(time.time()-t)+'s')
         torch.cuda.empty_cache()
 
     layer_nums = layers_num_corrector(layer_nums)

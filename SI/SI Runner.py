@@ -5,8 +5,8 @@ Created on Thu Nov 25 14:15:34 2021
 
 @author: hossein
 """
-  
-from functions import load_model, latent_feat_extractor, si_calculator, load_saved_features, forward_selection_SI
+
+from functions import load_model, latent_feat_extractor, si_calculator, load_saved_features, forward_selection_SI, Plot_SI
 from loaders import MarketLoader4
 import torch
 from torch.utils.data import DataLoader
@@ -34,16 +34,12 @@ attr = data_delivery(main_path=main_path,
 test_data = MarketLoader4(img_path=main_path,
                             attr=attr,
                             resolution=(256, 128),
-                            indexes=test_idx[0:100],
+                            indexes=test_idx[0:6000],
                             need_attr = False,
                             need_collection=True,
                             need_id = False,
                             two_transforms = False,                          
                             ) 
-
-
-key = 'foot'
-aa = test_data[0][key]
 
 layer = 'out_conv4'
 features_ready = False
@@ -58,14 +54,12 @@ else:
                                         device=device, use_adapt=False,
                                         final_size = (8, 8), mode='return')
 
-
+clss = 'leg'
 run_SI_on_all = False
 
 if run_SI_on_all == True:
-    si_foot = si_calculator(out_layers, test_data(key))
+    si_foot = si_calculator(out_layers, test_data.leg)
 
-trend, layer_nums = forward_selection_SI(out_layers.to('cuda'), test_data.foot.to('cuda'))
+trend, layer_nums = forward_selection_SI(out_layers.to('cuda'), test_data.leg.to('cuda'), clss)
 
-import numpy as np
-trend = np.array(trend)
-np.save('./results/trend'++'.npy', trend)
+Plot_SI(layer_nums, trend)
