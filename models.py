@@ -49,7 +49,7 @@ class mb_build_model(nn.Module):
     
     def __init__(self,
                  model,
-                 main_cov_size = 512,
+                 main_cov_size = 25,
                  attr_dim = 128,
                  dropout_p = 0.3,
                  sep_conv_size = None,
