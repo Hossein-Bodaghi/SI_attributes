@@ -21,7 +21,7 @@ torch.cuda.empty_cache()
 
 #%%
 main_path = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
-path_attr = '/home/hossein/SI_attribute/attributes/new_total_attr.npy'
+path_attr = './attributes/new_total_attr.npy'
 
 attr = data_delivery(main_path,
                   path_attr=path_attr,
@@ -88,7 +88,7 @@ utils.load_pretrained_weights(model, weight_path)
 # sep_fc = True and sep_clf = False is not possible
 attr_net = mb_build_model(model = model,
                  main_cov_size = 512,
-                 attr_dim = 128,
+                 attr_dim = 64,
                  dropout_p = 0.3,
                  sep_conv_size = 128,
                  sep_fc = True,

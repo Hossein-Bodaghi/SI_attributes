@@ -229,7 +229,7 @@ class mb_build_model(nn.Module):
             self.bag_clff = []
             self.bag_clff.append(self.bag_clf)  
             # gender
-            self.age_clf = nn.Linear(self.attr_feat_dim, 4)
+            self.age_clf = nn.Linear(self.attr_dim, 4)
             self.gender_clf = nn.Linear(self.attr_dim, 1)                    
             self.general_clff = []
             self.general_clff.append(self.age_clf)
@@ -256,7 +256,7 @@ class mb_build_model(nn.Module):
             self.bag_clff = []
             self.bag_clff.append(self.bag_clf)  
             # gender
-            self.general_clf = nn.Linear(self.attr_feat_dim, 5)                 
+            self.general_clf = nn.Linear(self.attr_dim, 5)                 
             self.general_clff = []
             self.general_clff.append(self.general_clf)
     
