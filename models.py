@@ -369,7 +369,7 @@ class mb_build_model(nn.Module):
         out_attributes = {}
         if self.sep_clf:
             # head
-            out_head, out_head_colour = self.attr_branch(out_conv4 if (self.feat_indices == None) else torch.index_select(out_conv4, 1, self.feat_indices),
+            out_head, out_head_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices),
                                                          fc_layer = self.head_fcc,
                                                          clf_layer = self.head_clff,
                                                          conv_layer = self.conv_head,
