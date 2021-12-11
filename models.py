@@ -49,14 +49,16 @@ class mb_build_model(nn.Module):
     
     def __init__(self,
                  model,
-                 main_cov_size = 25,
+                 main_cov_size = 512,
                  attr_dim = 128,
                  dropout_p = 0.3,
                  sep_conv_size = None,
                  sep_fc = False,
-                 sep_clf = False):
+                 sep_clf = False,
+                 feature_selection = None):
         
-        super().__init__()        
+        super().__init__()
+        self.feat_indices = feature_selection
         self.feature_dim = main_cov_size
         self.dropout_p = dropout_p 
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
@@ -67,6 +69,9 @@ class mb_build_model(nn.Module):
         self.attr_dim = attr_dim
         self.sep_fc = sep_fc
         self.sep_clf = sep_clf
+
+        if self.feat_indices is not None:
+            self.feature_dim = 25
         # convs
         if self.sep_conv_size:
             self.attr_feat_dim = sep_conv_size
@@ -364,7 +369,8 @@ class mb_build_model(nn.Module):
         out_attributes = {}
         if self.sep_clf:
             # head
-            out_head, out_head_colour = self.attr_branch(out_conv4, fc_layer = self.head_fcc,
+            out_head, out_head_colour = self.attr_branch(out_conv4 if (self.feat_indices == None) else torch.index_select(out_conv4, 1, self.feat_indices),
+                                                         fc_layer = self.head_fcc,
                                                          clf_layer = self.head_clff,
                                                          conv_layer = self.conv_head,
                                                          sep_fc = self.sep_fc, sep_clf = self.sep_clf,

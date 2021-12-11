@@ -85,6 +85,11 @@ model = models.build_model(
 
 weight_path = '/home/hossein/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
 utils.load_pretrained_weights(model, weight_path)
+
+import numpy as np
+feat_indices = np.load('./SI/results/trendshead.npy')
+feat_indices = torch.from_numpy(feat_indices)
+
 # sep_fc = True and sep_clf = False is not possible
 attr_net = mb_build_model(model = model,
                  main_cov_size = 512,
@@ -92,7 +97,8 @@ attr_net = mb_build_model(model = model,
                  dropout_p = 0.3,
                  sep_conv_size = 128,
                  sep_fc = True,
-                 sep_clf = True)
+                 sep_clf = True,
+                 feature_selection=feat_indices)
 
 attr_net = attr_net.to(device)
 
