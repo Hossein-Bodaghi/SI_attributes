@@ -86,9 +86,13 @@ model = models.build_model(
 weight_path = 'C:/Users/ASUS/Desktop/SI/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
 utils.load_pretrained_weights(model, weight_path)
 
-import numpy as np
-feat_indices = np.load('./SI/results/layershead.npy')
-feat_indices = torch.from_numpy(feat_indices).to(device)
+def feat_selection_loader(nth=25):
+  import numpy as np
+  filenames = ['head', 'body', 'leg', 'foot', 'bags', 'gender-age']
+  feat_indices =[torch.from_numpy(np.load('./SI/results/layers'+fname+'.npy')[:nth]).to(device) for fname in filenames]
+  return feat_indices
+
+feat_indices = feat_selection_loader(nth=25)
 
 # sep_fc = True and sep_clf = False is not possible
 attr_net = mb_build_model(model = model,

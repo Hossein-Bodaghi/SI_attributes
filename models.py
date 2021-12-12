@@ -369,7 +369,7 @@ class mb_build_model(nn.Module):
         out_attributes = {}
         if self.sep_clf:
             # head
-            out_head, out_head_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices),
+            out_head, out_head_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[0]),
                                                          fc_layer = self.head_fcc,
                                                          clf_layer = self.head_clff,
                                                          conv_layer = self.conv_head,
@@ -382,13 +382,15 @@ class mb_build_model(nn.Module):
                                                          sep_fc = self.sep_fc, sep_clf = self.sep_clf,
                                                          need_feature = need_feature)
             # lower body
-            out_leg, out_leg_colour = self.attr_branch(out_conv4, fc_layer = self.lower_body_fcc,
+            out_leg, out_leg_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[1]),
+                                                         fc_layer = self.lower_body_fcc,
                                                          clf_layer = self.lower_body_clff,
                                                          conv_layer = self.conv_leg,
                                                          sep_fc = self.sep_fc, sep_clf = self.sep_clf,
                                                          need_feature = need_feature)
             # foot
-            out_foot, out_foot_colour = self.attr_branch(out_conv4, fc_layer = self.foot_fcc,
+            out_foot, out_foot_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[2]),
+                                                         fc_layer = self.foot_fcc,
                                                          clf_layer = self.foot_clff,
                                                          conv_layer = self.conv_foot,
                                                          sep_fc = self.sep_fc, sep_clf = self.sep_clf,
@@ -465,6 +467,316 @@ class mb_build_model(nn.Module):
     def save_baseline(self, saving_path):
         torch.save(self.model.state_dict(), saving_path)
         print('baseline model save to {}'.format(saving_path))
+
+
+class mb12_build_model(nn.Module):
+    
+    def __init__(self,
+                 model,
+                 main_cov_size = 512,
+                 attr_dim = 128,
+                 dropout_p = 0.3,
+                 sep_conv_size = None,
+                 feature_selection = None):
+        
+        super().__init__()
+        self.feat_indices = feature_selection
+        self.feature_dim = main_cov_size
+        self.dropout_p = dropout_p 
+        self.global_avgpool = nn.AdaptiveAvgPool2d(1)
+        self.softmax = nn.Softmax(dim=1)
+        self.sigmoid = nn.Sigmoid()
+        self.model = model
+        self.sep_conv_size = sep_conv_size
+        self.attr_dim = attr_dim
+
+        if self.feat_indices is not None:
+            self.feature_dim = 25
+        # convs
+        self.attr_feat_dim = sep_conv_size
+        # head
+        self.conv_head = _make_layer(blocks[2],
+                                    layers[2],
+                                    self.feature_dim,
+                                    self.sep_conv_size,
+                                    reduce_spatial_size=False
+                                    )
+        self.conv_head_colour = _make_layer(blocks[2],
+                                    layers[2],
+                                    self.feature_dim,
+                                    self.sep_conv_size,
+                                    reduce_spatial_size=False
+                                    )
+        # body
+        self.conv_body = _make_layer(
+                                        blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )            
+        self.conv_body_type = _make_layer(
+                                        blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )
+        self.conv_body_colour = _make_layer(
+                                        blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )   
+        # leg
+        self.conv_leg = _make_layer(    blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )                
+        self.conv_leg_colour = _make_layer(    blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )  
+        # foot
+        self.conv_foot = _make_layer(
+                                        blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )           
+        self.conv_foot_colour = _make_layer(
+                                        blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    ) 
+        # gender & age
+        self.conv_gender = _make_layer(
+                                        blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )
+        self.conv_age = _make_layer(
+                                        blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )
+        # bags
+        self.conv_bags = _make_layer(
+                                        blocks[2],
+                                        layers[2],
+                                        self.feature_dim,
+                                        self.sep_conv_size,
+                                        reduce_spatial_size=False
+                                    )             
+            
+        # fully connecteds
+        # head
+        self.head_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+        self.head_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+        # upper body
+        self.body_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+        self.body_type_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+        self.body_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+        #lower body
+        self.leg_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+        self.leg_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
+        #foot
+        self.foot_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+        self.foot_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)             
+        #bags
+        self.bag_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)             
+        # general
+        self.age_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+        self.gender_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
+
+        # classifiers
+        # head
+        self.head_clf = nn.Linear(self.attr_dim, 5)
+        self.head_color_clf = nn.Linear(self.attr_dim, 2)
+        # body
+        self.body_clf = nn.Linear(self.attr_dim, 4)
+        self.body_type_clf = nn.Linear(self.attr_dim, 1)
+        self.body_color_clf = nn.Linear(self.attr_dim, 8)
+        # leg
+        self.leg_clf = nn.Linear(self.attr_dim, 3)
+        self.leg_color_clf = nn.Linear(self.attr_dim, 9)
+        # foot
+        self.foot_clf = nn.Linear(self.attr_dim, 3)
+        self.foot_color_clf = nn.Linear(self.attr_dim, 4)
+        # bag
+        self.bag_clf = nn.Linear(self.attr_dim, 4)
+        # gender
+        self.age_clf = nn.Linear(self.attr_dim, 4)
+        self.gender_clf = nn.Linear(self.attr_dim, 1)
+    
+    def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
+        if fc_dims is None or fc_dims < 0:
+            self.feature_dim = input_dim
+            return None
+    
+        if isinstance(fc_dims, int):
+            fc_dims = [fc_dims]
+    
+        layers = []
+        for dim in fc_dims:
+            layers.append(nn.Linear(input_dim, dim))
+            layers.append(nn.BatchNorm1d(dim))
+            layers.append(nn.ReLU(inplace=True))
+            if dropout_p is not None:
+                layers.append(nn.Dropout(p=dropout_p))
+            input_dim = dim
+    
+        self.feature_dim = fc_dims[-1]
+    
+        return nn.Sequential(*layers)
+
+    def get_feature(self, x, get_attr=True, get_feature=True, get_collection=False):
+        
+        out_conv4 = self.out_layers_extractor(x, 'out_conv4')
+        # The path for multi-branches for attributes 
+        out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf, need_feature=True)          
+        out_body = self.attr_branch(out_conv4, self.conv_body, self.body_fc, self.body_clf, need_feature=True)     
+        out_body_type = self.attr_branch(out_conv4, self.conv_body_type, self.body_type_fc, self.body_type_clf, need_feature=True)          
+        out_leg = self.attr_branch(out_conv4, self.conv_leg ,self.leg_fc, self.leg_clf, need_feature=True)           
+        out_foot = self.attr_branch(out_conv4, self.conv_foot, self.foot_fc, self.foot_clf, need_feature=True)            
+        out_gender = self.attr_branch(out_conv4, self.conv_gender, self.gender_fc, self.gender_clf, need_feature=True)             
+        out_bags = self.attr_branch(out_conv4, self.conv_bags, self.bags_fc, self.bags_clf, need_feature=True)            
+        out_body_colour = self.attr_branch(out_conv4, self.conv_body_color, self.body_color_fc, self.body_color_clf, need_feature=True)             
+        out_leg_colour = self.attr_branch(out_conv4, self.conv_leg_color, self.leg_color_fc, self.leg_color_clf, need_feature=True)              
+        out_foot_colour = self.attr_branch(out_conv4, self.conv_foot_color, self.foot_color_fc, self.foot_color_clf, need_feature=True)  
+        
+        # The path for person re-id:
+        del out_conv4
+        x = self.out_layers_extractor(x, 'out_fc')
+        x = [out_head, out_body, out_body_type, out_leg,
+                   out_foot, out_gender, out_bags, out_body_colour,
+                   out_leg_colour, out_foot_colour, x]
+        outputs = torch.cat(x, dim=1)
+        return outputs
+        
+    
+    def vector_features(self, x):
+        features = self.model(x)
+        out_attr = self.attr_lin(features) 
+        out_features = torch.cat(features, out_attr, dim=1)
+        return out_features
+        
+    def out_layers_extractor(self, x, layer):
+        out_os_layers = self.model.layer_extractor(x, layer) 
+        return out_os_layers   
+                
+    def attr_branch(self, x, fc_layer, clf_layer,
+                    conv_layer=None, need_feature=False):
+        ''' fc_layer should be a list of fully connecteds
+            clf_layer hould be a list of classifiers
+        '''
+        # handling conv layer
+        if conv_layer:
+            x = conv_layer(x)
+        x = self.global_avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = fc_layer(x)
+        if need_feature:
+                return x
+        out = clf_layer(x)
+        return out 
+    
+    def forward(self, x, need_feature=False):
+        out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
+        out_attributes = {}
+        # head
+        out_head = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[0]),
+                                                        fc_layer = self.head_fc,
+                                                        clf_layer = self.head_clf,
+                                                        conv_layer = self.conv_head, need_feature = need_feature)
+
+        out_head_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[1]),
+                                                        fc_layer = self.head_color_fc,
+                                                        clf_layer = self.head_color_clf,
+                                                        conv_layer = self.conv_head_colour, need_feature = need_feature) 
+        # upper body
+        out_body = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[2]),
+                                                        fc_layer = self.body_fc,
+                                                        clf_layer = self.body_clf,
+                                                        conv_layer = self.conv_body, need_feature = need_feature)
+
+        out_body_type = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[3]),
+                                                        fc_layer = self.body_type_fc,
+                                                        clf_layer = self.body_type_clf,
+                                                        conv_layer = self.conv_body_type, need_feature = need_feature)
+
+        out_body_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[4]),
+                                                        fc_layer = self.body_color_fc,
+                                                        clf_layer = self.body_color_clf,
+                                                        conv_layer = self.conv_body_colour, need_feature = need_feature)
+        # lower body
+        out_leg = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[5]),
+                                                        fc_layer = self.leg_fc,
+                                                        clf_layer = self.leg_clf,
+                                                        conv_layer = self.conv_leg, need_feature = need_feature)
+
+        out_leg_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[6]),
+                                                        fc_layer = self.leg_color_fc,
+                                                        clf_layer = self.leg_color_clf,
+                                                        conv_layer = self.conv_leg_colour, need_feature = need_feature)
+        # foot
+        out_foot = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[7]),
+                                                        fc_layer = self.foot_fc,
+                                                        clf_layer = self.foot_clf,
+                                                        conv_layer = self.conv_foot, need_feature = need_feature)
+
+        out_foot_colour = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[8]),
+                                                        fc_layer = self.foot_color_fc,
+                                                        clf_layer = self.foot_color_clf,
+                                                        conv_layer = self.conv_foot_colour, need_feature = need_feature)
+        # bag
+        out_bags = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[9]),
+                                                        fc_layer = self.bag_fc,
+                                                        clf_layer = self.bag_clf,
+                                                        conv_layer = self.conv_bags, need_feature = need_feature)[0]
+        # general
+        out_age = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[10]),
+                                                        fc_layer = self.age_fc,
+                                                        clf_layer = self.age_clf,
+                                                        conv_layer = self.conv_age, need_feature = need_feature)
+
+        out_gender = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[11]),
+                                                        fc_layer = self.gender_fc,
+                                                        clf_layer = self.gender_clf,
+                                                        conv_layer = self.conv_gender, need_feature = need_feature)
+
+        out_attributes.update({'head':out_head,
+                                    'head_colour':out_head_colour,
+                                    'body':out_body,
+                                    'body_type':out_body_type,
+                                    'leg':out_leg,
+                                    'foot':out_foot,
+                                    'gender':out_gender,
+                                    'bags':out_bags,
+                                    'body_colour':out_body_colour,
+                                    'leg_colour':out_leg_colour,
+                                    'foot_colour':out_foot_colour,
+                                    'age':out_age})         
+        return out_attributes
+    
+    def save_baseline(self, saving_path):
+        torch.save(self.model.state_dict(), saving_path)
+        print('baseline model save to {}'.format(saving_path))
+
+
+
 
 #%%
                                         
