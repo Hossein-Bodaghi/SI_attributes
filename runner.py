@@ -20,7 +20,7 @@ print('calculation is on:',device)
 torch.cuda.empty_cache()
 
 #%%
-main_path = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
+main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
 path_attr = './attributes/new_total_attr.npy'
 
 attr = data_delivery(main_path,
@@ -83,7 +83,7 @@ model = models.build_model(
     pretrained=False
 )
 
-weight_path = '/home/hossein/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
+weight_path = '/home/taarlab/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
 utils.load_pretrained_weights(model, weight_path)
 # sep_fc = True and sep_clf = False is not possible
 attr_net = mb_build_model(model = model,
@@ -91,7 +91,7 @@ attr_net = mb_build_model(model = model,
                  attr_dim = 64,
                  dropout_p = 0.3,
                  sep_conv_size = 128,
-                 sep_fc = True,
+                 sep_fc = False,
                  sep_clf = True)
 
 attr_net = attr_net.to(device)
@@ -117,7 +117,7 @@ dict_training_multi_branch(num_epoch = 30,
                      bce_loss = criterion2,
                      save_path = save_path,                    
                      device = device,
-                     version = 'V_Cl_MFC_01',
+                     version = 'sif_convt_128_flf_64_clft_CA',
                      resume=False,
                      loss_train = None,
                      loss_test=None,
