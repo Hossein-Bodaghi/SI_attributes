@@ -87,6 +87,9 @@ def si_calculator(X, Y):
     for i in range(X.shape[0]):
             if torch.equal(torch.reshape(Y[idxs2[i]], (-1,)), Y[i]):
                 si += 1
+            #for 0 or 1 labels use this:
+            #if torch.reshape(Y[idxs2[i]], (-1,)) == Y[i]:
+            #    si += 1
     total = X.shape[0]
     del X
     del idxs2
@@ -132,7 +135,7 @@ def layers_num_corrector(layers):
 
     import numpy as np
     to_add = np.zeros(len(layers), dtype=np.int8)
-    for i in range(layers.shape[0]):
+    for i in range(len(layers)):
         for j in range(i):
             if layers[j]<=layers[i]:
                 to_add[i]+=1
@@ -198,7 +201,7 @@ def forward_selection_SI(out_layers, label, clss):
         numss = np.array(layer_nums)
         np.save('./results/layers'+clss+'.npy', numss)
 
-        if (len(trend) > 2) and (trend[-1] < trend[-2]):
+        if (len(trend) > 25) and (trend[-1] < trend[-2]):
             break
 
         print('time for each forward select: '+"{:.2f}".format(time.time()-t)+'s')

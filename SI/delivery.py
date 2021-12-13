@@ -9,19 +9,29 @@ import numpy as np
 import torch
 import os 
 
+def unique(list1):
+ 
+    # initialize a null list
+    unique_list = []
+     
+    # traverse for all elements
+    for x in list1:
+        # check if exists in unique_list or not
+        if x not in unique_list:
+            unique_list.append(x)
+    return len(unique_list)
+            
 def data_delivery(main_path,
                   path_attr=None,
                   path_start=None,
-                  path_market_attr=None,
                   only_id=False,
                   double = True,
                   need_collection=False,
                   need_attr=True,
-                  CA_Market = True,
                   mode = 'CA_Market'):
     '''
     
-
+mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
     Parameters
     ----------
     main_path : TYPE string
@@ -74,6 +84,8 @@ def data_delivery(main_path,
     img_names = np.array(img_names)
     if double:
         img_names = list(np.append(img_names,img_names,axis=0))
+
+
         
         # ids & ids_weights
     id_ = []
@@ -83,14 +95,27 @@ def data_delivery(main_path,
         id_.append(int(b[0])-1)
         cam_id.append(int(b[1][1]))
     cam_id = np.array(cam_id)
+    num_ids = unique(id_)
     id_ = torch.from_numpy(np.array(id_))# becuase list doesnt take a list of indexes it should be slice or inegers.
+    id1 = torch.zeros((len(id_),num_ids))
     
-    # one hot id vectors
-    last_id = id_[-1]
-    id1 = torch.zeros((len(id_),last_id+1))
-    for i in range(len(id1)):
-        a = id_[i]
-        id1[i,a] = 1
+    sample = id_[0]
+    i = 0
+    if mode == 'Duke_attribute':
+        for j in range(len(id1)):
+            if sample == id_[j]:
+               id1[j, i] = 1
+            else:
+                i += 1
+                sample = id_[j]
+                id1[j, i] = 1      
+    else:            
+        # one hot id vectors
+        last_id = id_[-1]
+        id1 = torch.zeros((len(id_),last_id+1))
+        for i in range(len(id1)):
+            a = id_[i]
+            id1[i,a] = 1
         
     # numbers = torch.unique(id_) # return individual numbers in a tensor
     sum_ids_train = torch.sum(id1, axis=0)
@@ -103,11 +128,8 @@ def data_delivery(main_path,
     
     if only_id:
         return {'img_names':np.array(img_names),'id':id_,'id_weights':torch.from_numpy(np.array(ids_weights)), 'cam_id':cam_id}
-    
-    if mode == 'CA_Market':
-        attr_vec =  np.delete(attr_vec_np, slice(6,15), axis=1)
-    elif mode == 'Market_attribute':
-        attr_vec = attr_vec_np
+
+    attr_vec = attr_vec_np
     attr_vec = torch.from_numpy(attr_vec)
     sum_attr_train = torch.sum(attr_vec, axis=0)
     n_samples, n_classes = attr_vec.size()
@@ -128,6 +150,7 @@ def data_delivery(main_path,
     
     if need_collection:
         head = []
+        head_color = []
         body = []
         body_type = []
         leg = []
@@ -137,19 +160,22 @@ def data_delivery(main_path,
         body_colour = []
         leg_colour = []
         foot_colour = []
+        age = []        
         
         for vec in attr_vec_np:
             
             gender.append(vec[0])
             head.append(vec[1:6])
-            body.append(vec[15:18])
-            body_type.append(vec[18])
-            leg.append(vec[31:34])
-            foot.append(vec[43:46])
-            bags.append(vec[28:31])
-            body_colour.append(vec[19:28])
-            leg_colour.append(vec[34:43])
-            foot_colour.append(vec[46:])
+            head_color.append(vec[6:8])
+            body.append(vec[8:12])
+            body_type.append(vec[12])
+            body_colour.append(vec[13:21])
+            bags.append(vec[21:25])
+            leg.append(vec[25:28])
+            leg_colour.append(vec[28:37])
+            foot.append(vec[37:40])
+            foot_colour.append(vec[40:44])
+            age.append(vec[44:48])
             
         # one hot id vectors
         last_id = id_[-1]
@@ -164,6 +190,7 @@ def data_delivery(main_path,
                     'attr_weights':torch.from_numpy(np.array(attr_weights)),
                     'img_names':np.array(img_names),
                     'head':torch.from_numpy(np.array(head)),
+                    'head_colour':torch.from_numpy(np.array(head_color)),
                     'body':torch.from_numpy(np.array(body)),
                     'body_type':torch.tensor(body_type),
                     'leg':torch.from_numpy(np.array(leg)),
@@ -173,15 +200,16 @@ def data_delivery(main_path,
                     'body_colour':torch.from_numpy(np.array(body_colour)),
                     'leg_colour':torch.from_numpy(np.array(leg_colour)),
                     'foot_colour':torch.from_numpy(np.array(foot_colour)),
+                    'age':torch.from_numpy(np.array(age)),
                     'cam_id':cam_id}
     
         if need_collection and need_attr:
             return {'id':id1,
                     'id_weights':torch.from_numpy(np.array(ids_weights)),
-                    'attributes':attr_vec,
                     'attr_weights':torch.from_numpy(np.array(attr_weights)),
                     'img_names':np.array(img_names),
                     'head':torch.from_numpy(np.array(head)),
+                    'head_colour':torch.from_numpy(np.array(head_color)),
                     'body':torch.from_numpy(np.array(body)),
                     'body_type':torch.tensor(body_type),
                     'leg':torch.from_numpy(np.array(leg)),
@@ -191,7 +219,9 @@ def data_delivery(main_path,
                     'body_colour':torch.from_numpy(np.array(body_colour)),
                     'leg_colour':torch.from_numpy(np.array(leg_colour)),
                     'foot_colour':torch.from_numpy(np.array(foot_colour)),
-                    'cam_id':cam_id}            
+                    'age':torch.from_numpy(np.array(age)),
+                    'attributes':attr_vec,
+                    'cam_id':cam_id}         
             
 
 
