@@ -9,7 +9,7 @@ Created on Sun Dec  5 14:22:06 2021
 from delivery import data_delivery
 from torchvision import transforms
 from loaders import CA_Loader
-from models import mb_build_model
+from models import mb_build_model, mb12_build_model
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn 
@@ -88,13 +88,22 @@ utils.load_pretrained_weights(model, weight_path)
 
 def feat_selection_loader(nth=25):
   import numpy as np
-  filenames = ['head', 'body', 'leg', 'foot', 'bags', 'gender-age']
+  filenames = ['head', 'leg', 'foot']
   feat_indices =[torch.from_numpy(np.load('./SI/results/layers'+fname+'.npy')[:nth]).to(device) for fname in filenames]
   return feat_indices
 
 feat_indices = feat_selection_loader(nth=25)
 
 # sep_fc = True and sep_clf = False is not possible
+
+attr_net = mb12_build_model(model = model,
+                 main_cov_size = 512,
+                 attr_dim = 64,
+                 dropout_p = 0.3,
+                 sep_conv_size = 128,
+                 feature_selection=None)
+
+"""
 attr_net = mb_build_model(model = model,
                  main_cov_size = 512,
                  attr_dim = 64,
@@ -103,7 +112,7 @@ attr_net = mb_build_model(model = model,
                  sep_fc = True,
                  sep_clf = True,
                  feature_selection=feat_indices)
-
+"""
 attr_net = attr_net.to(device)
 
 #%%
