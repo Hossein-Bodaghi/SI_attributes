@@ -85,11 +85,11 @@ def si_calculator(X, Y):
     idxs2 = torch.sort(torch.cdist(X, X)).indices[:,1:2]
     si = 0
     for i in range(X.shape[0]):
-            if torch.equal(torch.reshape(Y[idxs2[i]], (-1,)), Y[i]):
-                si += 1
-            #for 0 or 1 labels use this:
-            #if torch.reshape(Y[idxs2[i]], (-1,)) == Y[i]:
+            #if torch.equal(torch.reshape(Y[idxs2[i]], (-1,)), Y[i]):
             #    si += 1
+            #for 0 or 1 labels use this:
+            if torch.reshape(Y[idxs2[i]], (-1,)) == Y[i]:
+                si += 1
     total = X.shape[0]
     del X
     del idxs2
