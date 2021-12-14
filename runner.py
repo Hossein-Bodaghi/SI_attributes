@@ -83,7 +83,7 @@ model = models.build_model(
     pretrained=False
 )
 
-weight_path = '/home/hossein/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
+weight_path = './checkpoints/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
 utils.load_pretrained_weights(model, weight_path)
 # sep_fc = True and sep_clf = False is not possible
 attr_net = mb_build_model(model = model,
