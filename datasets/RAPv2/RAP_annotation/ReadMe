@@ -1,0 +1,7 @@
+attribute: pedestrian attribute names and global bounding boxes positions.
+selected_attribute: index of attributes which are used in our experiments.
+data: values of attribute.
+name: image names.
+partition_attribute: five times random experiment splits of pedestrian attribute recognition.
+partition_reid: person re-identification split.
+person_identity: person identity; person images whose identity is '-1' are distractors; -2 represents the person identity is unlabeled.
