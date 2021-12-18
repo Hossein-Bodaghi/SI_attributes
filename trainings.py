@@ -49,7 +49,7 @@ def id_onehot(id_,num_id):
         id1[i,a-1] = 1
     return id1
 
-def loss_calculator(out_data, data, bce_loss, cce_loss = None):
+def CA_12_loss_calculator(out_data, data, bce_loss, cce_loss = None):
     attr_loss = []
     if cce_loss:
         loss_head = cce_loss(out_data['head'], data['head'].argmax(dim=1))
@@ -75,6 +75,7 @@ def loss_calculator(out_data, data, bce_loss, cce_loss = None):
     loss_body_type = bce_loss(out_data['body_type'].squeeze(), data['body_type'].float())        
     loss_gender = bce_loss(out_data['gender'].squeeze(), data['gender'].float())
     loss_body_colour = bce_loss(out_data['body_colour'], data['body_colour'].float())
+    
     attr_loss.append(loss_gender)
     attr_loss.append(loss_head)
     attr_loss.append(loss_head_colour)
@@ -92,7 +93,7 @@ def loss_calculator(out_data, data, bce_loss, cce_loss = None):
     attr_loss = torch.tensor(attr_loss)
     return attr_loss, loss_total
 
-def y_attributes(out_data, data):
+def CA_target_attributes_12(out_data, data):
     # head
     y_head = tensor_max(softmax(out_data['head']))
     # head_color
@@ -201,13 +202,13 @@ def dict_training_multi_branch(num_epoch,
             out_data = attr_net.forward(data['img'])
 
             # compute losses and evaluation metrics:
-            attr_loss, loss_total = loss_calculator(out_data = out_data,
+            attr_loss, loss_total = CA_12_loss_calculator(out_data = out_data,
                                                     data = data,
                                                     bce_loss = bce_loss,
                                                     cce_loss = cce_loss)
             loss_parts_train += attr_loss
 
-            y_attr, y_target = y_attributes(out_data, data)
+            y_attr, y_target = CA_target_attributes_12(out_data, data)
             # evaluation    
             train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
             # append results
@@ -248,10 +249,13 @@ def dict_training_multi_branch(num_epoch,
                 out_data = attr_net.forward(data['img'])           
                 
                 # compute losses and evaluation metrics:
-                attr_loss, loss_total = loss_calculator(out_data, data, cce_loss, bce_loss)
+                attr_loss, loss_total = CA_12_loss_calculator(out_data = out_data,
+                                                              data = data,
+                                                              bce_loss = bce_loss,
+                                                              cce_loss = cce_loss)
                 loss_parts_test += attr_loss
                 
-                y_attr, y_target = y_attributes(out_data, data)
+                y_attr, y_target = CA_target_attributes_12(out_data, data)
 
                 test_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 ft_test.append(test_attr_metrics[-2])
