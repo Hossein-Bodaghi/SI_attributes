@@ -111,6 +111,25 @@ attr_net = mb12_build_model(model = model,
 
 attr_net = attr_net.to(device)
 
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
+
+i = 0
+for child in attr_net.children():
+    i += 1
+    # print(child)
+    if i == 27:
+        # print(child)
+        a = get_n_params(child)
+get_n_params(model)
+
+
 #%%
 criterion1 = nn.CrossEntropyLoss()
 criterion2 = nn.BCEWithLogitsLoss()

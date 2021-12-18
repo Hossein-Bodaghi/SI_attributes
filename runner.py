@@ -28,8 +28,10 @@ def get_n_params(model):
             nn = nn*s
         pp += nn
     return pp
+
+
 #%%
-main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox'
+main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
 path_attr = './attributes/new_total_attr.npy'
 
 attr = data_delivery(main_path,
@@ -104,6 +106,16 @@ attr_net = mb_build_model(model = model,
                  sep_clf = True)
 
 attr_net = attr_net.to(device)
+
+i = 0
+for child in attr_net.children():
+    i += 1
+    # print(i)
+    # print(child)
+    if i == 10:
+    #     # print(child)
+        a = get_n_params(child)
+        
 get_n_params(attr_net)
 #%%
 criterion1 = nn.CrossEntropyLoss()
