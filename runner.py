@@ -20,6 +20,15 @@ print('calculation is on:',device)
 torch.cuda.empty_cache()
 
 #%%
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
+#%%
 main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox'
 path_attr = './attributes/new_total_attr.npy'
 
@@ -95,7 +104,7 @@ attr_net = mb_build_model(model = model,
                  sep_clf = True)
 
 attr_net = attr_net.to(device)
-
+get_n_params(attr_net)
 #%%
 criterion1 = nn.CrossEntropyLoss()
 criterion2 = nn.BCEWithLogitsLoss()
@@ -126,3 +135,4 @@ dict_training_multi_branch(num_epoch = 30,
                       train_attr_acc=None,
                       test_attr_acc=None,  
                       stoped_epoch=None)
+
