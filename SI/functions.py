@@ -6,6 +6,7 @@ Created on Thu Nov 25 13:07:05 2021
 @author: hossein
 """
 
+from numpy import int8
 import torch
 from torchreid import models, utils    
 import os
@@ -133,8 +134,7 @@ def pca_converter(out_layers):
 
 def layers_num_corrector(layers):
 
-    import numpy as np
-    to_add = np.zeros(len(layers), dtype=np.int8)
+    to_add = torch.zeros(len(layers), dtype=torch.int8).to(device)
     for i in range(len(layers)):
         for j in range(i):
             if layers[j]<=layers[i]:
@@ -206,7 +206,5 @@ def forward_selection_SI(out_layers, label, clss):
 
         print('time for each forward select: '+"{:.2f}".format(time.time()-t)+'s')
         torch.cuda.empty_cache()
-
-    layer_nums = layers_num_corrector(layer_nums)
     
     return trend, layer_nums
