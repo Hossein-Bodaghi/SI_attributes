@@ -60,7 +60,7 @@ run_SI_on_all = False
 if run_SI_on_all == True:
     si_foot = si_calculator(out_layers, test_data.leg)
 
-clss = 'body_type'
-trend, layer_nums = forward_selection_SI(out_layers.to('cuda'), test_data.body_type.to('cuda'), clss)
+clss = 'gender'
+trend, layer_nums = forward_selection_SI(out_layers.to('cuda'), test_data.gender.to('cuda'), clss)
 
 Plot_SI(layer_nums, trend)
