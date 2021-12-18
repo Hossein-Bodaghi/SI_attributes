@@ -49,21 +49,32 @@ def id_onehot(id_,num_id):
         id1[i,a-1] = 1
     return id1
 
-def loss_calculator(out_data, data, cce_loss, bce_loss):
+def loss_calculator(out_data, data, bce_loss, cce_loss = None):
     attr_loss = []
-    loss_head = cce_loss(out_data['head'], data['head'].argmax(dim=1))
-    loss_head_colour = cce_loss(out_data['head_colour'], data['head_colour'].argmax(dim=1))
-    loss_body = cce_loss(out_data['body'], data['body'].argmax(dim=1))
-    loss_body_type = bce_loss(out_data['body_type'].squeeze(), data['body_type'].float())
-    loss_leg = cce_loss(out_data['leg'], data['leg'].argmax(dim=1))
-    loss_foot = cce_loss(out_data['foot'], data['foot'].argmax(dim=1))
+    if cce_loss:
+        loss_head = cce_loss(out_data['head'], data['head'].argmax(dim=1))
+        loss_head_colour = cce_loss(out_data['head_colour'], data['head_colour'].argmax(dim=1))
+        loss_body = cce_loss(out_data['body'], data['body'].argmax(dim=1))
+        loss_leg = cce_loss(out_data['leg'], data['leg'].argmax(dim=1))
+        loss_foot = cce_loss(out_data['foot'], data['foot'].argmax(dim=1))
+        loss_bag = cce_loss(out_data['bags'], data['bags'].argmax(dim=1))    
+        loss_leg_colour = cce_loss(out_data['leg_colour'], data['leg_colour'].argmax(dim=1))
+        loss_foot_colour = cce_loss(out_data['foot_colour'], data['foot_colour'].argmax(dim=1))
+        loss_age = cce_loss(out_data['age'], data['age'].argmax(dim=1))
+    else:
+        loss_head = bce_loss(out_data['head'], data['head'].float())
+        loss_head_colour = bce_loss(out_data['head_colour'], data['head_colour'].float())
+        loss_body = bce_loss(out_data['body'], data['body'].float())
+        loss_leg = bce_loss(out_data['leg'], data['leg'].float())
+        loss_foot = bce_loss(out_data['foot'], data['foot'].float())
+        loss_bag = bce_loss(out_data['bags'], data['bags'].float())    
+        loss_leg_colour = bce_loss(out_data['leg_colour'], data['leg_colour'].float())
+        loss_foot_colour = bce_loss(out_data['foot_colour'], data['foot_colour'].float())
+        loss_age = bce_loss(out_data['age'], data['age'].float())        
+        
+    loss_body_type = bce_loss(out_data['body_type'].squeeze(), data['body_type'].float())        
     loss_gender = bce_loss(out_data['gender'].squeeze(), data['gender'].float())
-    loss_bag = cce_loss(out_data['bags'], data['bags'].argmax(dim=1))
     loss_body_colour = bce_loss(out_data['body_colour'], data['body_colour'].float())
-    loss_leg_colour = cce_loss(out_data['leg_colour'], data['leg_colour'].argmax(dim=1))
-    loss_foot_colour = cce_loss(out_data['foot_colour'], data['foot_colour'].argmax(dim=1))
-    loss_age = cce_loss(out_data['age'], data['age'].argmax(dim=1))
-
     attr_loss.append(loss_gender)
     attr_loss.append(loss_head)
     attr_loss.append(loss_head_colour)
@@ -190,7 +201,10 @@ def dict_training_multi_branch(num_epoch,
             out_data = attr_net.forward(data['img'])
 
             # compute losses and evaluation metrics:
-            attr_loss, loss_total = loss_calculator(out_data, data, cce_loss, bce_loss)
+            attr_loss, loss_total = loss_calculator(out_data = out_data,
+                                                    data = data,
+                                                    bce_loss = bce_loss,
+                                                    cce_loss = cce_loss)
             loss_parts_train += attr_loss
 
             y_attr, y_target = y_attributes(out_data, data)
