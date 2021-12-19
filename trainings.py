@@ -93,29 +93,85 @@ def CA_12_loss_calculator(out_data, data, bce_loss, cce_loss = None):
     attr_loss = torch.tensor(attr_loss)
     return attr_loss, loss_total
 
-def CA_target_attributes_12(out_data, data):
-    # head
-    y_head = tensor_max(softmax(out_data['head']))
-    # head_color
-    y_head_colour = tensor_max(softmax(out_data['head_colour']))
-    # body
-    y_body = tensor_max(softmax(out_data['body']))
+def CA_target_attributes_12(out_data, data, softmax = False, tensor_max = False):
+    
+    if softmax:
+        # head
+        out_data['head'] = softmax(out_data['head'])
+        # head_color
+        out_data['head_colour'] = softmax(out_data['head_colour'])
+        # body
+        out_data['body'] = softmax(out_data['body'])
+        # leg
+        out_data['leg'] = softmax(out_data['leg'])
+        # foot
+        out_data['foot'] = softmax(out_data['foot'])
+        # bags
+        out_data['bags'] = softmax(out_data['bags'])
+        # leg_colour
+        out_data['leg_colour'] = softmax(out_data['leg_colour'])
+        # foot_colour
+        out_data['foot_colour'] = softmax(out_data['foot_colour'])
+    else:
+        # head
+        out_data['head'] = torch.sigmoid(out_data['head'])
+        # head_color
+        out_data['head_colour'] = torch.sigmoid(out_data['head_colour'])
+        # body
+        out_data['body'] = torch.sigmoid(out_data['body'])
+        # leg
+        out_data['leg'] = torch.sigmoid(out_data['leg'])
+        # foot
+        out_data['foot'] = torch.sigmoid(out_data['foot'])
+        # bags
+        out_data['bags'] = torch.sigmoid(out_data['bags'])
+        # leg_colour
+        out_data['leg_colour'] = torch.sigmoid(out_data['leg_colour'])
+        # foot_colour
+        out_data['foot_colour'] = torch.sigmoid(out_data['foot_colour'])        
+    if tensor_max:
+        # head
+        y_head = tensor_max(out_data['head'])
+        # head_color
+        y_head_colour = tensor_max(out_data['head_colour'])
+        # body
+        y_body = tensor_max(out_data['body'])
+        # leg
+        y_leg = tensor_max(out_data['leg'])
+        # foot
+        y_foot = tensor_max(out_data['foot'])
+        # bags
+        y_bags = tensor_max(out_data['bags'])
+        # leg_colour
+        y_leg_colour = tensor_max(out_data['leg_colour'])
+        # foot_colour
+        y_foot_colour = tensor_max(out_data['foot_colour'])
+    else:
+        # head
+        y_head = tensor_thresh(out_data['head'])
+        # head_color
+        y_head_colour = tensor_thresh(out_data['head_colour'])
+        # body
+        y_body = tensor_thresh(out_data['body'])
+        # leg
+        y_leg = tensor_thresh(out_data['leg'])
+        # foot
+        y_foot = tensor_thresh(out_data['foot'])
+        # bags
+        y_bags = tensor_thresh(out_data['bags'])
+        # leg_colour
+        y_leg_colour = tensor_thresh(out_data['leg_colour'])
+        # foot_colour
+        y_foot_colour = tensor_thresh(out_data['foot_colour'])
+        
     # body_type
     y_body_type = tensor_thresh(torch.sigmoid(out_data['body_type']), 0.5)
-    # leg
-    y_leg = tensor_max(softmax(out_data['leg']))
-    # foot
-    y_foot = tensor_max(softmax(out_data['foot']))
     # gender
     y_gender = tensor_thresh(torch.sigmoid(out_data['gender']), 0.5)
-    # bags
-    y_bags = tensor_max(softmax(out_data['bags']))
     # body_colour
     y_body_colour = tensor_thresh(torch.sigmoid(out_data['body_colour']), 0.5)
-    # leg_colour
-    y_leg_colour = tensor_max(softmax(out_data['leg_colour']))
-    # foot_colour
-    y_foot_colour = tensor_max(softmax(out_data['foot_colour']))
+
+
     # age
     y_age = tensor_max(softmax(out_data['age']))
     y_attr = torch.cat((y_gender, y_head, y_head_colour, y_body,

@@ -6,23 +6,19 @@ Created on Sun Jul  4 18:34:12 2021
 @author: hossein
 """
 
-import os
-os.chdir('/home/hossein/anaconda3/envs/torchreid/deep-person-reid/my_osnet') 
 #%%
-import torchreid
 """
 version v1 is:
     1) we consider whole vector of output as our target oposite 
     of v1 that we seperatly had a loss function for every collection
 """
 from delivery import data_delivery 
-from models import my_load_pretrain,MyOsNet,feature_model,MyOsNet2, CA_market_model5
-from loaders import MarketLoader4, Market_folder_Loader
-from metrics import tensor_metrics, boolian_metrics, tensor_metrics_detailes
+from trainings import CA_target_attributes_12
+from models import mb_build_model
+from loaders import CA_Loader
+from metrics import tensor_metrics
 import time
 import torch
-import torch.nn as nn 
-from torchvision import transforms
 from torch.utils.data import DataLoader
 
 # import numpy as np
@@ -32,19 +28,10 @@ print('calculation is on:',device)
 torch.cuda.empty_cache()
 
 #%%
-def tensor_max(tensor):
 
-    idx = torch.argmax(tensor, dim=1, keepdim=True)
-    y = torch.zeros(tensor.size(),device=device).scatter_(1, idx, 1.)
-    return y
-
-def tensor_thresh(tensor, thr=0.5):
-    out = (tensor>thr).float()
-    return out    
-
-def attr_evaluation(attr_net, test_loader, device, need_attr=True):
+def attr_evaluation(attr_net, test_loader, device):
+    
     attr_net.to(device)
-    softmax = torch.nn.Softmax(dim=1)
     # evaluation:     
     attr_net.eval()
     with torch.no_grad():
@@ -54,53 +41,14 @@ def attr_evaluation(attr_net, test_loader, device, need_attr=True):
             for key, _ in data.items():
                 data[key] = data[key].to(device)
             # forward step
-            out_data = attr_net.get_feature(data['img'], get_attr=need_attr, get_feature=False)                      
-            if not need_attr:
-                # compute losses and evaluation metrics:
-                # head 
-                y_head = tensor_max(softmax(out_data['head']))                
-                # body
-                y_body = tensor_max(softmax(out_data['body']))
-                # body_type 
-                y_body_type = tensor_thresh(torch.sigmoid(out_data['body_type']), 0.5)
-                # leg
-                y_leg = tensor_max(softmax(out_data['leg']))                
-                # foot 
-                y_foot = tensor_max(softmax(out_data['foot']))                
-                # gender
-                y_gender = tensor_thresh(torch.sigmoid(out_data['gender']), 0.5)
-                # bags
-                y_bags = tensor_max(softmax(out_data['bags']))                
-                # body_colour 
-                y_body_colour = tensor_thresh(torch.sigmoid(out_data['body_colour']), 0.5)                
-                # leg_colour
-                y_leg_colour = tensor_max(softmax(out_data['leg_colour']))                
-                # foot_colour
-                y_foot_colour = tensor_max(softmax(out_data['foot_colour']))
-                y_attr = torch.cat((y_gender, y_head, y_body, 
-                                    y_body_type, y_body_colour,
-                                    y_bags, y_leg, y_leg_colour,
-                                    y_foot, y_foot_colour), dim=1)
-                    
-                y_target = torch.cat((data['gender'].unsqueeze(dim=1), data['head'],
-                                      data['body'], data['body_type'].unsqueeze(dim=1),
-                                      data['body_colour'], data['bags'],
-                                      data['leg'], data['leg_colour'],
-                                      data['foot'], data['foot_colour']), dim=1)  
-                predicts.append(y_attr.to('cpu'))
-                targets.append(y_target.to('cpu'))
-            else:
-                y_attr = tensor_thresh(torch.sigmoid(out_data['attr']))
-                # y_attr = tensor_thresh(out_data['attr'], 0)
-                y_target = data['attr'].to('cpu')  
-                predicts.append(y_attr.to('cpu'))
-                targets.append(y_target.to('cpu'))     
+            out_data = attr_net(data['img'], need_feature=False)                      
+            y_attr, y_target = CA_target_attributes_12(out_data, data)
+            predicts.append(y_attr.to('cpu'))
+            targets.append(y_target.to('cpu'))   
         predicts = torch.cat(predicts)
         targets = torch.cat(targets)
         test_attr_metrics = tensor_metrics(y_target.float(), y_attr)    
     return test_attr_metrics 
-
-
 
 #%%
 from torchreid import models
@@ -113,15 +61,14 @@ model = models.build_model(
 )
 
 model = model.cuda()
-#%%
 
-attr_net_camarket = CA_market_model5(model=model,
-                  feature_dim = 512,
-                  num_id = 751,
-                  attr_dim = 30,
-                  need_id = False,
-                  need_attr = True,
-                  need_collection = False)
+attr_net_camarket = mb_build_model(model = model,
+                 main_cov_size = 512,
+                 attr_dim = 64,
+                 dropout_p = 0.3,
+                 sep_conv_size = 128,
+                 sep_fc = False,
+                 sep_clf = True)
 
 model_path = './result/V8_03/best_attr_net.pth'
 trained_net = torch.load(model_path)
@@ -131,11 +78,10 @@ attr_net_camarket.load_state_dict(trained_net.state_dict())
 for idx, m in enumerate(attr_net_camarket.children()):
     print(idx, '->', m) 
 #%%
-main_path = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
-path_train = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/bounding_box_train/'
-path_attr = '/home/hossein/SI_attribute/attributes/gt_bbox_market_attribute.npy'
-train_idx = torch.load( './attributes/train_idx_full.pth')
-test_idx = torch.load('./attributes/test_idx_full.pth')
+main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
+path_attr = './attributes/new_total_attr.npy'
+test_idx_path = './attributes/test_idx_full.pth'
+test_idx = torch.load(test_idx_path)
 
 attr = data_delivery(main_path=main_path,
                      path_attr=path_attr,
@@ -144,12 +90,12 @@ attr = data_delivery(main_path=main_path,
                      need_attr=True,
                      mode = 'Market_attribute')
 
-test_data = MarketLoader4(img_path=main_path,
+test_data = CA_Loader(img_path=main_path,
                           attr=attr,
                           resolution=(256, 128),
                           indexes=test_idx,
-                          need_attr = True,
-                          need_collection=False,
+                          need_attr = False,
+                          need_collection=True,
                           need_id = False,
                           two_transforms = False,                          
                           ) 
@@ -157,16 +103,20 @@ batch_size = 200
 test_loader = DataLoader(test_data,batch_size=batch_size,shuffle=False)
 
 #%%
-attr_metrics = attr_evaluation(attr_net_camarket, test_loader, device, need_attr=True)
+attr_metrics = attr_evaluation(attr_net_camarket, test_loader, device)
 
 #%%
 
-attr_colomns = ['young','teenager','adult','old','backpack','Shoulder-bag','Hand-bag','Down-black','Down-blue',
-'Down-brown','Down-gray','Down-green','Down-pink','Down-purple','Down-white','Down-yellow','Up-black','Up-blue',
-'Up-green','Up-gray','Up-purple','Up-red','Up-white','Up-yellow','type of lower-body','length of lower-body',
-'sleeve length','Hair-length','hat','Gender'
-]
-
+attr_colomns = ['gender','cap','hairless','short hair','long hair',
+           'knot', 'h_colorful', 'h_black','Tshirt_shs', 'shirt_ls','coat',
+           'top','simple/patterned','b_w','b_r',
+           'b_y','b_green','b_b',
+           'b_gray','b_p','b_black','backpack', 'shoulder bag',
+           'hand bag','no bag','pants',
+           'short','skirt','l_w','l_r','l_br','l_y','l_green','l_b',
+           'l_gray','l_p','l_black','shoes','sandal',
+           'hidden','no color','f_w', 'f_colorful','f_black', 'young', 
+           'teenager', 'adult', 'old']
 def metrics_print(attr_metrics, attr_colomns, metricss='f1'):
     n = 0
     if metricss == 'precision': n = 0
