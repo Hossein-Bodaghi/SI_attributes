@@ -42,7 +42,7 @@ def attr_evaluation(attr_net, test_loader, device):
                 data[key] = data[key].to(device)
             # forward step
             out_data = attr_net(data['img'], need_feature=False)                      
-            y_attr, y_target = CA_target_attributes_12(out_data, data)
+            y_attr, y_target = CA_target_attributes_12(out_data, data, softmax=True, tensor_max=True)
             predicts.append(y_attr.to('cpu'))
             targets.append(y_target.to('cpu'))   
         predicts = torch.cat(predicts)
@@ -70,13 +70,10 @@ attr_net_camarket = mb_build_model(model = model,
                  sep_fc = False,
                  sep_clf = True)
 
-model_path = './result/V8_03/best_attr_net.pth'
+model_path = './results/sif_convt_128_flf_64_clft_bce_CA/best_attr_net.pth'
 trained_net = torch.load(model_path)
-attr_net_camarket.load_state_dict(trained_net.state_dict())
+attr_net_camarket.load_state_dict(trained_net)
 
-#%%
-for idx, m in enumerate(attr_net_camarket.children()):
-    print(idx, '->', m) 
 #%%
 main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
 path_attr = './attributes/new_total_attr.npy'
@@ -85,9 +82,9 @@ test_idx = torch.load(test_idx_path)
 
 attr = data_delivery(main_path=main_path,
                      path_attr=path_attr,
-                     need_collection=False,
+                     need_collection=True,
                      double=False,
-                     need_attr=True,
+                     need_attr=False,
                      mode = 'Market_attribute')
 
 test_data = CA_Loader(img_path=main_path,
@@ -103,8 +100,11 @@ batch_size = 200
 test_loader = DataLoader(test_data,batch_size=batch_size,shuffle=False)
 
 #%%
+start = time.time()
 attr_metrics = attr_evaluation(attr_net_camarket, test_loader, device)
+finish = time.time()
 
+print('inferencing from {} images takes {:.4f} s'.format(len(test_data), finish-start))
 #%%
 
 attr_colomns = ['gender','cap','hairless','short hair','long hair',

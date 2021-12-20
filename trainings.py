@@ -112,6 +112,8 @@ def CA_target_attributes_12(out_data, data, softmax = False, tensor_max = False)
         out_data['leg_colour'] = softmax(out_data['leg_colour'])
         # foot_colour
         out_data['foot_colour'] = softmax(out_data['foot_colour'])
+        # age
+        out_data['age'] = softmax(out_data['age'])       
     else:
         # head
         out_data['head'] = torch.sigmoid(out_data['head'])
@@ -129,6 +131,8 @@ def CA_target_attributes_12(out_data, data, softmax = False, tensor_max = False)
         out_data['leg_colour'] = torch.sigmoid(out_data['leg_colour'])
         # foot_colour
         out_data['foot_colour'] = torch.sigmoid(out_data['foot_colour'])        
+        # age
+        out_data['age'] = torch.sigmoid(out_data['age'])   
     if tensor_max:
         # head
         y_head = tensor_max(out_data['head'])
@@ -146,6 +150,8 @@ def CA_target_attributes_12(out_data, data, softmax = False, tensor_max = False)
         y_leg_colour = tensor_max(out_data['leg_colour'])
         # foot_colour
         y_foot_colour = tensor_max(out_data['foot_colour'])
+        # age
+        y_age = tensor_max(out_data['age'])
     else:
         # head
         y_head = tensor_thresh(out_data['head'])
@@ -163,6 +169,8 @@ def CA_target_attributes_12(out_data, data, softmax = False, tensor_max = False)
         y_leg_colour = tensor_thresh(out_data['leg_colour'])
         # foot_colour
         y_foot_colour = tensor_thresh(out_data['foot_colour'])
+        # age
+        y_age = tensor_thresh(out_data['age'])       
         
     # body_type
     y_body_type = tensor_thresh(torch.sigmoid(out_data['body_type']), 0.5)
@@ -171,9 +179,6 @@ def CA_target_attributes_12(out_data, data, softmax = False, tensor_max = False)
     # body_colour
     y_body_colour = tensor_thresh(torch.sigmoid(out_data['body_colour']), 0.5)
 
-
-    # age
-    y_age = tensor_max(softmax(out_data['age']))
     y_attr = torch.cat((y_gender, y_head, y_head_colour, y_body,
                         y_body_type, y_body_colour,
                         y_bags, y_leg, y_leg_colour,
