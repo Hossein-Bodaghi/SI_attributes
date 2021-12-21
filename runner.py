@@ -41,7 +41,7 @@ attr = data_delivery(main_path,
                   double = False,
                   need_collection=True,
                   need_attr=True,
-                  mode = 'CA_Market')
+                  dataset = 'CA_Market')
 
 train_idx_path = './attributes/train_idx_full.pth' 
 test_idx_path = './attributes/test_idx_full.pth'

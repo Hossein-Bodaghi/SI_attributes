@@ -28,7 +28,7 @@ def data_delivery(main_path,
                   double = True,
                   need_collection=False,
                   need_attr=True,
-                  mode = 'CA_Market'):
+                  dataset = 'CA_Market'):
     '''
     
 mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
