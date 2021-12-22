@@ -212,5 +212,10 @@ def attr_id_finder(attributes, id_, attr_idx=21):
 body_oranges = attr_id_finder(attributes, id_, attr_idx=21)  
 leg_oranges = attr_id_finder(market_attrs, id_, attr_idx=9)  
 #%%
-np.save('/home/hossein/anaconda3/envs/torchreid/deep-person-reid/my_osnet/attributes/new_total_attr.npy',
-        atr_new)
+idd = np.reshape(np.array(id_), (len(id_),1))
+attr_with_id = np.append(atr_new, idd, axis=1)
+market_attr_with_id = np.append(market_attrs, idd, axis=1)
+np.save('./CA_Market_with_id.npy',
+        attr_with_id)
+np.save('./Market_attribute_with_id.npy',
+        market_attr_with_id)

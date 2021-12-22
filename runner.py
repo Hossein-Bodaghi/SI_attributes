@@ -32,7 +32,7 @@ def get_n_params(model):
 
 #%%
 main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
-path_attr = './attributes/new_total_attr.npy'
+path_attr = './attributes/CA_Market.npy'
 
 attr = data_delivery(main_path,
                   path_attr=path_attr,

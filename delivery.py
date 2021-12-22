@@ -70,7 +70,7 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
         attr_vec_np = attr_vec_np.astype(np.int32)
         if double:
             attr_vec_np = np.append(attr_vec_np,attr_vec_np,axis=0)        
-        
+    
     # images names    
     img_names = os.listdir(main_path)
     img_names.sort()
@@ -101,7 +101,7 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
     
     sample = id_[0]
     i = 0
-    if mode == 'Duke_attribute':
+    if dataset == 'Duke_attribute':
         for j in range(len(id1)):
             if sample == id_[j]:
                id1[j, i] = 1
