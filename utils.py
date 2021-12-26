@@ -56,5 +56,13 @@ def one_hot_id(id_):
             id1[j, i] = 1     
     return id1
 
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
 
 

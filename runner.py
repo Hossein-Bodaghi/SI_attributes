@@ -14,21 +14,11 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn 
 from trainings import dict_training_multi_branch
+from utils import get_n_params
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('calculation is on:',device)
 torch.cuda.empty_cache()
-
-#%%
-def get_n_params(model):
-    pp=0
-    for p in list(model.parameters()):
-        nn=1
-        for s in list(p.size()):
-            nn = nn*s
-        pp += nn
-    return pp
-
 
 #%%
 main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
@@ -36,9 +26,7 @@ path_attr = './attributes/CA_Market.npy'
 
 attr = data_delivery(main_path,
                   path_attr=path_attr,
-                  path_start=None,
-                  only_id=False,
-                  double = False,
+                  need_id=False,
                   need_collection=True,
                   need_attr=True,
                   dataset = 'CA_Market')
