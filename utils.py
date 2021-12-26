@@ -10,10 +10,14 @@ import numpy as np
 import os
 import torch
 
+market_main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
 path_ca_market = '/home/hossein/SI_attributes/attributes/CA_Market_with_id.npy'
 path_market_attribute = '/home/hossein/SI_attributes/attributes/Market_attribute_with_id.npy'
-path_duke_attribute = '/home/hossein/SI_attributes/attributes/Duke_attribute_with_id.npy'
-main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
+
+duke_path_train = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_train'
+duke_path_test = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_test'
+train_duke_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_train_with_id.npy'
+test_duke_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_test_with_id.npy'
 
 def load_attributes(path_attr):
     attr_vec_np = np.load(path_attr)# loading attributes
@@ -53,20 +57,4 @@ def one_hot_id(id_):
     return id1
 
 
-
-ca_attr = load_attributes(path_ca_market)
-market_attr = load_attributes(path_market_attribute)
-duke_attr = load_attributes(path_duke_attribute)
-
-
-
-
-weights = torch.sum(ca_attr[:,:-1], dim=0)
-
-
-
-img_names = load_image_names(main_path)
-
-uniques = unique(ca_attr[:,-1])
-ids = one_hot_id(ca_attr[:,-1])
 
