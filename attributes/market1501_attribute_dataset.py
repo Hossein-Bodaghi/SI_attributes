@@ -71,7 +71,7 @@ def market_duke_attr(path, key = 'market_attribute'):
         attributes2[tr_l:,20] = t_attr[tr_l:,19] # up-blue
         attributes2[tr_l:,21] = t_attr[tr_l:,20] # up-blue
         attributes2[tr_l:,22:] = t_attr[tr_l:,22:] # up-brown 
-        return attributes2
+        return {'test':attributes2[tr_l:] , 'train': attributes2[:tr_l]}
         
     elif key == 'market_attribute':    
         tr_attr = tr_attr.T # (750, 28)
@@ -146,17 +146,22 @@ def id_level2img_level(main_path, attr):
 main_path = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
 attr_path = '/home/hossein/deep-person-reid/datasets/dukemtmc/DukeMTMC-attribute-master/duke_attribute.mat'
 attr = market_duke_attr(attr_path, key='duke_attribute') 
-gt_attr = id_level2img_level(main_path, attr)
-save_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_with_id.npy' 
-np.save(save_path, gt_attr)
 
+path_train = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_train'
+path_test = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_test'
+attr_train_duke = id_level2img_level(path_train, attr['train'])
+attr_test_duke = id_level2img_level(path_test, attr['test'])
 
+train_duke_save_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_train_with_id.npy'
+test_duke_save_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_test_with_id.npy'
+np.save(train_duke_save_path, attr_train_duke)
+np.save(test_duke_save_path, attr_test_duke)
 #%%
 '''
 prepare our data for gt_bbox folder
 '''
 
-main_path = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
+path_train = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
 attr_path = '/home/hossein/deep-person-reid/market1501_label/Market-1501_Attribute-master/market_attribute.mat'
 attr = market_duke_attr(attr_path) # (1501, 31)
 
