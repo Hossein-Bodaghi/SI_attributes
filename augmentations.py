@@ -10,7 +10,7 @@ from delivery import data_delivery
 from torchvision import transforms
 import torch
 from loaders import get_image
-from utils import plot, augmentor
+from utils import plot, augmentor, LGT, RandomErasing
 import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -33,18 +33,29 @@ train_transform = transforms.Compose([
                             transforms.RandomHorizontalFlip(),
                             transforms.ColorJitter(saturation=[1,3])
                             ])
+test_transform = LGT(probability=0.8, sl=0.02, sh=0.9, r1=0.9)
+
+test_transform2 = RandomErasing(probability = 0.5, sl = 0.02, sh = 0.4, r1 = 0.3, mean=[0.4914, 0.4822, 0.4465])                            
 
 torch.manual_seed(0)
 
-
-
-img_paths = [os.path.join(main_path, attr['img_names'][i]) for i in torch.randint(0, 25259, (10,1))]
+num_origins = 5
+# make paths 
+img_paths = [os.path.join(main_path, attr['img_names'][i]) for i in torch.randint(0, 25259, (num_origins,1))]
+# load path as images
 orig_imgs = [get_image(addr,256, 128) for addr in img_paths]
-
-augmented = [augmentor(orig_img, train_transform) for orig_img in orig_imgs]
+# augment images
+augmented = [augmentor(orig_img, test_transform2) for orig_img in orig_imgs]
+# plot augmented images
 plot(augmented, orig_imgs)
 
-    
+#%%
+
+# to_pil_image = transforms.ToPILImage()
+# to_tensor = transforms.ToTensor()
+
+# a = to_tensor(orig_imgs[0])
+# b = to_pil_image(a)
 
 
 

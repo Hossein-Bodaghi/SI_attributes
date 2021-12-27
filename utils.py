@@ -5,20 +5,16 @@ Created on Tue Dec 21 14:35:31 2021
 
 @author: hossein
 """
-
+from __future__ import absolute_import
 import numpy as np
 import os
 import torch
 import matplotlib.pyplot as plt
+import math
+from PIL import Image
+import random
+import torchvision.transforms as transforms
 
-market_main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
-path_ca_market = '/home/hossein/SI_attributes/attributes/CA_Market_with_id.npy'
-path_market_attribute = '/home/hossein/SI_attributes/attributes/Market_attribute_with_id.npy'
-
-duke_path_train = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_train'
-duke_path_test = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_test'
-train_duke_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_train_with_id.npy'
-test_duke_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_test_with_id.npy'
 
 def load_attributes(path_attr):
     attr_vec_np = np.load(path_attr)# loading attributes
@@ -26,10 +22,12 @@ def load_attributes(path_attr):
     attr_vec_np = attr_vec_np.astype(np.int32)
     return torch.from_numpy(attr_vec_np)
 
+
 def load_image_names(main_path):
     img_names = os.listdir(main_path)
     img_names.sort()    
     return np.array(img_names)
+
 
 def unique(list1):
     # initialize a null list
@@ -40,6 +38,7 @@ def unique(list1):
         if x not in unique_list:
             unique_list.append(x)
     return len(unique_list)
+
 
 def one_hot_id(id_):
     num_ids = unique(id_)
@@ -57,6 +56,7 @@ def one_hot_id(id_):
             id1[j, i] = 1     
     return id1
 
+
 def get_n_params(model):
     pp=0
     for p in list(model.parameters()):
@@ -65,6 +65,7 @@ def get_n_params(model):
             nn = nn*s
         pp += nn
     return pp
+
 
 def plot(imgs, orig_img, with_orig=True, row_title=None, **imshow_kwargs):
     if not isinstance(imgs[0], list):
@@ -90,6 +91,106 @@ def plot(imgs, orig_img, with_orig=True, row_title=None, **imshow_kwargs):
 
     plt.tight_layout()
 
+
 def augmentor(orig_img, transform, num_aug=7):
     augmented = [transform(orig_img) for i in range(num_aug)]
     return augmented
+
+
+
+class LGT(object):
+    '''
+    probability: The probability that the operation will be performed.
+    sl: min erasing area
+    sh: max erasing area
+    r1: min aspect ratio
+    mean: erasing value
+    this code is copied from:
+        https://github.com/finger-monkey/Data-Augmentation.git
+    '''
+    def __init__(self, probability=0.2, sl=0.02, sh=0.4, r1=0.3):
+        self.probability = probability
+        self.sl = sl
+        self.sh = sh
+        self.r1 = r1
+
+    def __call__(self, img):
+
+        new = img.convert("L")   # Convert from here to the corresponding grayscale image
+        np_img = np.array(new, dtype=np.uint8)
+        img_gray = np.dstack([np_img, np_img, np_img])
+
+        if random.uniform(0, 1) >= self.probability:
+            return img
+
+        for attempt in range(100):
+            area = img.size[0] * img.size[1]
+            target_area = random.uniform(self.sl, self.sh) * area
+            aspect_ratio = random.uniform(self.r1, 1 / self.r1)
+
+            h = int(round(math.sqrt(target_area * aspect_ratio)))
+            w = int(round(math.sqrt(target_area / aspect_ratio)))
+
+            if w < img.size[1] and h < img.size[0]:
+                x1 = random.randint(0, img.size[0] - h)
+                y1 = random.randint(0, img.size[1] - w)
+                img = np.asarray(img).astype('float')
+
+                img[y1:y1 + h, x1:x1 + w, 0] = img_gray[y1:y1 + h, x1:x1 + w, 0]
+                img[y1:y1 + h, x1:x1 + w, 1] = img_gray[y1:y1 + h, x1:x1 + w, 1]
+                img[y1:y1 + h, x1:x1 + w, 2] = img_gray[y1:y1 + h, x1:x1 + w, 2]
+
+                img = Image.fromarray(img.astype('uint8'))
+
+                return img
+
+        return img
+    
+class RandomErasing(object):
+    '''
+    Class that performs Random Erasing in Random Erasing Data Augmentation by Zhong et al. 
+    -------------------------------------------------------------------------------------
+    probability: The probability that the operation will be performed.
+    sl: min erasing area
+    sh: max erasing area
+    r1: min aspect ratio
+    mean: erasing value
+    -------------------------------------------------------------------------------------
+    this code is copied and modified from:
+        https://github.com/zhunzhong07/Random-Erasing.git
+    '''
+    def __init__(self, probability = 0.5, sl = 0.02, sh = 0.4, r1 = 0.3, mean=[0.4914, 0.4822, 0.4465]):
+        self.probability = probability
+        self.mean = mean
+        self.sl = sl
+        self.sh = sh
+        self.r1 = r1
+        self.to_pil_image = transforms.ToPILImage()
+        self.to_tensor = transforms.ToTensor()
+    def __call__(self, img):
+        img = self.to_tensor(img)
+
+        if random.uniform(0, 1) > self.probability:
+            return self.to_pil_image(img)
+
+        for attempt in range(100):
+            area = img.size()[1] * img.size()[2]
+       
+            target_area = random.uniform(self.sl, self.sh) * area
+            aspect_ratio = random.uniform(self.r1, 1/self.r1)
+
+            h = int(round(math.sqrt(target_area * aspect_ratio)))
+            w = int(round(math.sqrt(target_area / aspect_ratio)))
+
+            if w < img.size()[2] and h < img.size()[1]:
+                x1 = random.randint(0, img.size()[1] - h)
+                y1 = random.randint(0, img.size()[2] - w)
+                if img.size()[0] == 3:
+                    img[0, x1:x1+h, y1:y1+w] = self.mean[0]
+                    img[1, x1:x1+h, y1:y1+w] = self.mean[1]
+                    img[2, x1:x1+h, y1:y1+w] = self.mean[2]
+                else:
+                    img[0, x1:x1+h, y1:y1+w] = self.mean[0]
+                return self.to_pil_image(img)
+
+        return self.to_pil_image(img)
