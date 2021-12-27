@@ -12,7 +12,7 @@ from utils import load_attributes, load_image_names
 def data_delivery(main_path,
                   path_attr=None,
                   need_id=False,
-                  need_collection=False,
+                  need_parts=False,
                   need_attr=True,
                   dataset = 'CA_Market'):
     '''
@@ -46,7 +46,7 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
     img_names = load_image_names(main_path)
     output.update({'img_names':img_names,'id':attr_vec[:,-1]})
     
-    if need_collection:  
+    if need_parts:  
         if dataset == 'CA_Market':                        
             output.update({'gender':attr_vec[:,0],
                         'head':attr_vec[:,1:6],
@@ -71,7 +71,17 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
                         'sleeve':attr_vec[:,26],
                         'hair':attr_vec[:,27],
                         'hat':attr_vec[:,28],
-                        'gender':attr_vec[:,29]})              
+                        'gender':attr_vec[:,29]})        
+            
+        elif dataset == 'Duke_attribute':
+            output.update({'bags':attr_vec[:,0:3],
+                        'boot':attr_vec[:,3],
+                        'gender':attr_vec[:,4],
+                        'hat':attr_vec[:,5],
+                        'foot_colour':attr_vec[:,6],
+                        'body':attr_vec[:,7],
+                        'leg_colour':attr_vec[:,8:15],
+                        'body_colour':attr_vec[:,15:22]}) 
     return output
 
 

@@ -26,8 +26,7 @@ path_attr = './attributes/CA_Market.npy'
 
 attr = data_delivery(main_path,
                   path_attr=path_attr,
-                  need_id=False,
-                  need_collection=True,
+                  need_parts=True,
                   need_attr=True,
                   dataset = 'CA_Market')
 

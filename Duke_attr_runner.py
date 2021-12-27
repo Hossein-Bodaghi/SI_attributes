@@ -29,15 +29,13 @@ path_attr_test = './attributes/Duke_attribute_test_with_id.npy'
 
 attr_train = data_delivery(train_img_path,
                   path_attr=path_attr_train,
-                  need_id=False,
-                  need_collection=True,
+                  need_parts=True,
                   need_attr=True,
                   dataset = 'Duke_attribute')
 
 attr_test = data_delivery(test_img_path,
                   path_attr=path_attr_test,
-                  need_id=False,
-                  need_collection=True,
+                  need_parts=True,
                   need_attr=True,
                   dataset = 'Duke_attribute')
 
