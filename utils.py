@@ -5,7 +5,6 @@ Created on Tue Dec 21 14:35:31 2021
 
 @author: hossein
 """
-from __future__ import absolute_import
 import numpy as np
 import os
 import torch

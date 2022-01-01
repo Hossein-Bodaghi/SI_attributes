@@ -41,21 +41,13 @@ torch.manual_seed(0)
 
 num_origins = 5
 # make paths 
-img_paths = [os.path.join(main_path, attr['img_names'][i]) for i in torch.randint(0, 25259, (num_origins,1))]
+img_paths = [os.path.join(main_path, attr['img_names'][i]) for i in torch.randint(0, 25258, (num_origins,1))]
 # load path as images
 orig_imgs = [get_image(addr,256, 128) for addr in img_paths]
 # augment images
 augmented = [augmentor(orig_img, test_transform2) for orig_img in orig_imgs]
 # plot augmented images
 plot(augmented, orig_imgs)
-
-#%%
-
-# to_pil_image = transforms.ToPILImage()
-# to_tensor = transforms.ToTensor()
-
-# a = to_tensor(orig_imgs[0])
-# b = to_pil_image(a)
 
 
 

@@ -24,20 +24,13 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
         DESCRIPTION. the path of images folder
     path_attr : TYPE numpy array
         DESCRIPTION.
-    path_start : TYPE 
-        DESCRIPTION.
-    double : TYPE true/false
-        DESCRIPTION. will double everything and return 
-    need_collection : TYPE true/false
+    need_parts : TYPE true/false
         DESCRIPTION. The default is False.
         if it is false returns a tuple containes a list of 
         image_names and their attributes in numpy and a list of ids  
     need_attr : when we want to see the whole attributes as a target vector 
     Returns
-    only_id : when you need only id and id_weights. 
     -------
-    None.
-
     '''
     output = {}
     attr_vec = load_attributes(path_attr) # numpy array
