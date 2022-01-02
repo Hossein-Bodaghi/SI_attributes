@@ -12,6 +12,7 @@ this is Hossein Bodaghies thesis
 import torch
 import numpy as np
 from metrics import tensor_metrics
+from loss_part_delivery import part_data_delivery
 import os
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -24,6 +25,9 @@ tensor_max: takes a matrix and return a matrix with one hot vectors for max argu
 lis2tensor: takes a list containing torch tensors and return a torch matrix  
 id_onehot: takes id tensors and make them one hoted 
 '''
+
+part_loss = part_data_delivery(need_parts=True, dataset='CA_Market')
+
 def tensor_max(tensor):
 
     idx = torch.argmax(tensor, dim=1, keepdim=True)
@@ -49,147 +53,141 @@ def id_onehot(id_,num_id):
         id1[i,a-1] = 1
     return id1
 
-def CA_12_loss_calculator(out_data, data, bce_loss, cce_loss = None):
+def CA_part_loss_calculator(out_data, data, part_loss, categorical = True):
     attr_loss = []
-    if cce_loss:
-        loss_head = cce_loss(out_data['head'], data['head'].argmax(dim=1))
-        loss_head_colour = cce_loss(out_data['head_colour'], data['head_colour'].argmax(dim=1))
-        loss_body = cce_loss(out_data['body'], data['body'].argmax(dim=1))
-        loss_leg = cce_loss(out_data['leg'], data['leg'].argmax(dim=1))
-        loss_foot = cce_loss(out_data['foot'], data['foot'].argmax(dim=1))
-        loss_bag = cce_loss(out_data['bags'], data['bags'].argmax(dim=1))    
-        loss_leg_colour = cce_loss(out_data['leg_colour'], data['leg_colour'].argmax(dim=1))
-        loss_foot_colour = cce_loss(out_data['foot_colour'], data['foot_colour'].argmax(dim=1))
-        loss_age = cce_loss(out_data['age'], data['age'].argmax(dim=1))
-    else:
-        loss_head = bce_loss(out_data['head'], data['head'].float())
-        loss_head_colour = bce_loss(out_data['head_colour'], data['head_colour'].float())
-        loss_body = bce_loss(out_data['body'], data['body'].float())
-        loss_leg = bce_loss(out_data['leg'], data['leg'].float())
-        loss_foot = bce_loss(out_data['foot'], data['foot'].float())
-        loss_bag = bce_loss(out_data['bags'], data['bags'].float())    
-        loss_leg_colour = bce_loss(out_data['leg_colour'], data['leg_colour'].float())
-        loss_foot_colour = bce_loss(out_data['foot_colour'], data['foot_colour'].float())
-        loss_age = bce_loss(out_data['age'], data['age'].float())        
-        
-    loss_body_type = bce_loss(out_data['body_type'].squeeze(), data['body_type'].float())        
-    loss_gender = bce_loss(out_data['gender'].squeeze(), data['gender'].float())
-    loss_body_colour = bce_loss(out_data['body_colour'], data['body_colour'].float())
-    
-    attr_loss.append(loss_gender)
-    attr_loss.append(loss_head)
-    attr_loss.append(loss_head_colour)
-    attr_loss.append(loss_body)
-    attr_loss.append(loss_body_type)
-    attr_loss.append(loss_body_colour)
-    attr_loss.append(loss_bag)
-    attr_loss.append(loss_leg)
-    attr_loss.append(loss_leg_colour)
-    attr_loss.append(loss_foot)
-    attr_loss.append(loss_foot_colour)
-    attr_loss.append(loss_age)
-    
+    if categorical:
+        for key, loss in part_loss.items():
+            if key == 'body_type' or key == 'gender':
+                loss_part = loss(out_data[key].squeeze(), data[key].float())
+            elif key == 'body_colour':
+                loss_part = loss(out_data[key], data[key].float())
+            else :
+                loss_part = loss(out_data[key], data[key].argmax(dim=1))
+            attr_loss.append(loss_part)
+    if not categorical:
+        for key, loss in part_loss.items():
+            loss_part = loss(out_data[key], data[key].float())
+            attr_loss.append(loss_part)
+            
+    loss_total = sum(attr_loss)
+    attr_loss = torch.tensor(attr_loss)
+    return attr_loss, loss_total
+            
+def Market_part_loss_calculator(out_data, data, part_loss, categorical = True):
+    attr_loss = []
+    if categorical:
+        for key, loss in part_loss.items():
+            if key == 'age' or key == 'bags' or key == 'leg_colour' or key == 'body_colour':
+                loss_part = loss(out_data[key], data[key].argmax(dim=1))
+            else :
+                loss_part = loss(out_data[key].squeeze(), data[key].float())
+            attr_loss.append(loss_part)
+    if not categorical:
+        for key, loss in part_loss.items():
+            loss_part = loss(out_data[key], data[key].float())
+            attr_loss.append(loss_part)
+
     loss_total = sum(attr_loss)
     attr_loss = torch.tensor(attr_loss)
     return attr_loss, loss_total
 
-def CA_target_attributes_12(out_data, data, softmax = False, tensor_max = False):
-    
-    if softmax:
-        # head
-        out_data['head'] = softmax(out_data['head'])
-        # head_color
-        out_data['head_colour'] = softmax(out_data['head_colour'])
-        # body
-        out_data['body'] = softmax(out_data['body'])
-        # leg
-        out_data['leg'] = softmax(out_data['leg'])
-        # foot
-        out_data['foot'] = softmax(out_data['foot'])
-        # bags
-        out_data['bags'] = softmax(out_data['bags'])
-        # leg_colour
-        out_data['leg_colour'] = softmax(out_data['leg_colour'])
-        # foot_colour
-        out_data['foot_colour'] = softmax(out_data['foot_colour'])
-        # age
-        out_data['age'] = softmax(out_data['age'])       
-    else:
-        # head
-        out_data['head'] = torch.sigmoid(out_data['head'])
-        # head_color
-        out_data['head_colour'] = torch.sigmoid(out_data['head_colour'])
-        # body
-        out_data['body'] = torch.sigmoid(out_data['body'])
-        # leg
-        out_data['leg'] = torch.sigmoid(out_data['leg'])
-        # foot
-        out_data['foot'] = torch.sigmoid(out_data['foot'])
-        # bags
-        out_data['bags'] = torch.sigmoid(out_data['bags'])
-        # leg_colour
-        out_data['leg_colour'] = torch.sigmoid(out_data['leg_colour'])
-        # foot_colour
-        out_data['foot_colour'] = torch.sigmoid(out_data['foot_colour'])        
-        # age
-        out_data['age'] = torch.sigmoid(out_data['age'])   
-    if tensor_max:
-        # head
-        y_head = tensor_max(out_data['head'])
-        # head_color
-        y_head_colour = tensor_max(out_data['head_colour'])
-        # body
-        y_body = tensor_max(out_data['body'])
-        # leg
-        y_leg = tensor_max(out_data['leg'])
-        # foot
-        y_foot = tensor_max(out_data['foot'])
-        # bags
-        y_bags = tensor_max(out_data['bags'])
-        # leg_colour
-        y_leg_colour = tensor_max(out_data['leg_colour'])
-        # foot_colour
-        y_foot_colour = tensor_max(out_data['foot_colour'])
-        # age
-        y_age = tensor_max(out_data['age'])
-    else:
-        # head
-        y_head = tensor_thresh(out_data['head'])
-        # head_color
-        y_head_colour = tensor_thresh(out_data['head_colour'])
-        # body
-        y_body = tensor_thresh(out_data['body'])
-        # leg
-        y_leg = tensor_thresh(out_data['leg'])
-        # foot
-        y_foot = tensor_thresh(out_data['foot'])
-        # bags
-        y_bags = tensor_thresh(out_data['bags'])
-        # leg_colour
-        y_leg_colour = tensor_thresh(out_data['leg_colour'])
-        # foot_colour
-        y_foot_colour = tensor_thresh(out_data['foot_colour'])
-        # age
-        y_age = tensor_thresh(out_data['age'])       
-        
-    # body_type
-    y_body_type = tensor_thresh(torch.sigmoid(out_data['body_type']), 0.5)
-    # gender
-    y_gender = tensor_thresh(torch.sigmoid(out_data['gender']), 0.5)
-    # body_colour
-    y_body_colour = tensor_thresh(torch.sigmoid(out_data['body_colour']), 0.5)
 
-    y_attr = torch.cat((y_gender, y_head, y_head_colour, y_body,
-                        y_body_type, y_body_colour,
-                        y_bags, y_leg, y_leg_colour,
-                        y_foot, y_foot_colour, y_age), dim=1)
-
-    y_target = torch.cat((data['gender'].unsqueeze(dim=1), data['head'], data['head_colour'],
-                          data['body'], data['body_type'].unsqueeze(dim=1),
-                          data['body_colour'], data['bags'],
-                          data['leg'], data['leg_colour'],
-                          data['foot'], data['foot_colour'], data['age']), dim=1)
+def CA_target_attributes_12(out_data, data, part_loss, tensor_max = False, categorical = True):
+    'calculte y_attr and y_target for categorical and vectorize formats'
+    if categorical:
+        m = 0
+        for key in part_loss:
+            if key == 'body_type' or key == 'gender':
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+                if m == 0:
+                    y_target = data[key].unsqueeze(dim=1)
+                else:
+                    y_target = torch.cat((y_target, data[key].unsqueeze(dim=1)),dim = 1)
+            elif key == 'body_colour':
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+                if m == 0:
+                    y_target = data[key]
+                else:
+                    y_target = torch.cat((y_target, data[key]), dim = 1)
+            else :
+                out_data[key] = softmax(out_data[key])
+                if m == 0:
+                    y_target = data[key]
+                else:
+                    y_target = torch.cat((y_target, data[key]), dim = 1)
+                if tensor_max:
+                    y = tensor_max(out_data[key])
+                else:
+                    y = tensor_thresh(out_data[key])
+            if m == 0:
+                y_attr = y
+            else:
+                y_attr = torch.cat((y_attr, y), dim=1)
+            m += 1
+    else:
+        m = 0
+        for key in part_loss:
+            if key == 'body_type' or key == 'gender' or key == 'body_colour':
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+            else :
+                out_data[key] = torch.sigmoid(out_data[key])
+                if tensor_max:
+                    y = tensor_max(out_data[key])
+                else:
+                    y = tensor_thresh(out_data[key])
+            if m == 0:
+                y_attr = y
+            else :
+                y_attr = torch.cat(y_attr, y, dim=1)
+            m += 1
     return y_attr, y_target
+
+
+def Market_target_attributes_12(out_data, data, part_loss, tensor_max = False, categorical = True):
+    'calculte y_attr and y_target for categorical and vectorize formats'
+    if categorical:
+        m = 0
+        for key in part_loss:
+            if key == 'age' or key == 'bags' or key == 'leg_colour' or key == 'body_colour':
+                out_data[key] = softmax(out_data[key])
+                if m == 0:
+                    y_target = data[key]
+                else:
+                    y_target = torch.cat((y_target, data[key]), dim = 1)
+                if tensor_max:
+                    y = tensor_max(out_data[key])
+                else:
+                    y = tensor_thresh(out_data[key])
+            else :
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+                if m == 0:
+                    y_target = data[key].unsqueeze(dim=1)
+                else:
+                    y_target = torch.cat((y_target, data[key].unsqueeze(dim=1)),dim = 1)
+            if m == 0:
+                y_attr = y
+            else:
+                y_attr = torch.cat((y_attr, y), dim=1)
+            m += 1
+    else:
+        m = 0
+        for key in part_loss:
+            if key == 'body_type' or key == 'gender' or key == 'body_colour':
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+            else :
+                out_data[key] = torch.sigmoid(out_data[key])
+                if tensor_max:
+                    y = tensor_max(out_data[key])
+                else:
+                    y = tensor_thresh(out_data[key])
+            if m == 0:
+                y_attr = y
+            else :
+                y_attr = torch.cat(y_attr, y, dim=1)
+            m += 1
+    return y_attr, y_target
+
+
 
 softmax = torch.nn.Softmax(dim=1)
 #%%
@@ -199,8 +197,6 @@ def dict_training_multi_branch(num_epoch,
                                test_loader,
                                optimizer,
                                scheduler,
-                               cce_loss,
-                               bce_loss,
                                save_path,
                                device,
                                version,
@@ -263,13 +259,14 @@ def dict_training_multi_branch(num_epoch,
             out_data = attr_net.forward(data['img'])
 
             # compute losses and evaluation metrics:
-            attr_loss, loss_total = CA_12_loss_calculator(out_data = out_data,
-                                                    data = data,
-                                                    bce_loss = bce_loss,
-                                                    cce_loss = cce_loss)
+            attr_loss, loss_total = CA_part_loss_calculator(out_data = out_data,
+                                                            data = data,
+                                                            part_loss = part_loss,
+                                                            categorical = True)
+
             loss_parts_train += attr_loss
 
-            y_attr, y_target = CA_target_attributes_12(out_data, data)
+            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)
             # evaluation    
             train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
             # append results
@@ -310,13 +307,13 @@ def dict_training_multi_branch(num_epoch,
                 out_data = attr_net.forward(data['img'])           
                 
                 # compute losses and evaluation metrics:
-                attr_loss, loss_total = CA_12_loss_calculator(out_data = out_data,
-                                                              data = data,
-                                                              bce_loss = bce_loss,
-                                                              cce_loss = cce_loss)
+                attr_loss, loss_total = CA_part_loss_calculator(out_data=out_data,
+                                                                data=data,
+                                                                part_loss=part_loss,
+                                                                categorical=True)
                 loss_parts_test += attr_loss
                 
-                y_attr, y_target = CA_target_attributes_12(out_data, data)
+                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)
 
                 test_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 ft_test.append(test_attr_metrics[-2])
