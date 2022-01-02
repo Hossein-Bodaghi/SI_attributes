@@ -54,52 +54,39 @@ def id_onehot(id_,num_id):
         id1[i,a-1] = 1
     return id1
 
-def part_data_delivery(keys, dataset='CA_Market'):
+def part_data_delivery(weights, dataset='CA_Market'):
     '''
     Parameters
     ----------
     dataset : ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
         
-    keys : should be a list of required parts        
+    weiights : should be a dict of required parts and their weights        
 
     Returns
     -------
-    dicts
+    dict
         for each key it contains the loss function of that part.
 
     '''
+    loss_dict = {}
+    
     if dataset == 'CA_Market':
-        CA_loss = {}
-        'to define every par loss'
-        CA_loss.update({'gender':nn.BCEWithLogitsLoss()})
-        CA_loss.update({'head':nn.CrossEntropyLoss()})
-        CA_loss.update({'head_colour': nn.CrossEntropyLoss()})
-        CA_loss.update({'body':nn.CrossEntropyLoss()})
-        CA_loss.update({'body_type':nn.BCEWithLogitsLoss()})
-        CA_loss.update({'body_colour':nn.BCEWithLogitsLoss()})
-        CA_loss.update({'bags':nn.CrossEntropyLoss()})
-        CA_loss.update({'leg':nn.CrossEntropyLoss()})
-        CA_loss.update({'leg_colour':nn.CrossEntropyLoss()})
-        CA_loss.update({'foot':nn.CrossEntropyLoss()})
-        CA_loss.update({'foot_colour': nn.CrossEntropyLoss()})
-        CA_loss.update({'age': nn.CrossEntropyLoss()})
-        
-        return CA_loss
+        for key in weights:
+            if key == 'body_type' or key == 'gender' or key == 'body_colour':
+                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key])})
+            else:
+                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key])})
+    
     elif dataset == 'Market_attribute':
-        Market_loss = {}
-        'to define every par loss'
-        Market_loss.update({'age':nn.CrossEntropyLoss()})
-        Market_loss.update({'bags':nn.CrossEntropyLoss()})
-        Market_loss.update({'leg_colour': nn.CrossEntropyLoss()})
-        Market_loss.update({'body_colour':nn.CrossEntropyLoss()})
-        Market_loss.update({'leg_type':nn.BCEWithLogitsLoss()})
-        Market_loss.update({'leg':nn.BCEWithLogitsLoss()})
-        Market_loss.update({'sleeve':nn.BCEWithLogitsLoss()})
-        Market_loss.update({'hair':nn.BCEWithLogitsLoss()})
-        Market_loss.update({'hat':nn.BCEWithLogitsLoss()})
-        Market_loss.update({'gender':nn.BCEWithLogitsLoss()})
         
-        return Market_loss
+        for key in weights:
+            if key == 'age' or key == 'bags' or key == 'leg_colour' or key == 'body_colour':
+                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key])})
+                
+            else:
+                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key])})
+        
+    return loss_dict
 
 def CA_part_loss_calculator(out_data, data, part_loss, categorical = True):
     attr_loss = []
