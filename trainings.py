@@ -54,40 +54,52 @@ def id_onehot(id_,num_id):
         id1[i,a-1] = 1
     return id1
 
-def CA_loss_parts():
-    CA_loss = {}
-    'to define every par loss'
-    CA_loss.update({'gender':nn.BCEWithLogitsLoss()})
-    CA_loss.update({'head':nn.CrossEntropyLoss()})
-    CA_loss.update({'head_colour': nn.CrossEntropyLoss()})
-    CA_loss.update({'body':nn.CrossEntropyLoss()})
-    CA_loss.update({'body_type':nn.BCEWithLogitsLoss()})
-    CA_loss.update({'body_colour':nn.BCEWithLogitsLoss()})
-    CA_loss.update({'bags':nn.CrossEntropyLoss()})
-    CA_loss.update({'leg':nn.CrossEntropyLoss()})
-    CA_loss.update({'leg_colour':nn.CrossEntropyLoss()})
-    CA_loss.update({'foot':nn.CrossEntropyLoss()})
-    CA_loss.update({'foot_colour': nn.CrossEntropyLoss()})
-    CA_loss.update({'age': nn.CrossEntropyLoss()})
-    
-    return CA_loss
-    
+def part_data_delivery(keys, dataset='CA_Market'):
+    '''
+    Parameters
+    ----------
+    dataset : ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
+        
+    keys : should be a list of required parts        
 
-def Market_loss_parts():
-    Market_loss = {}
-    'to define every par loss'
-    Market_loss.update({'age':nn.CrossEntropyLoss()})
-    Market_loss.update({'bags':nn.CrossEntropyLoss()})
-    Market_loss.update({'leg_colour': nn.CrossEntropyLoss()})
-    Market_loss.update({'body_colour':nn.CrossEntropyLoss()})
-    Market_loss.update({'leg_type':nn.BCEWithLogitsLoss()})
-    Market_loss.update({'leg':nn.BCEWithLogitsLoss()})
-    Market_loss.update({'sleeve':nn.BCEWithLogitsLoss()})
-    Market_loss.update({'hair':nn.BCEWithLogitsLoss()})
-    Market_loss.update({'hat':nn.BCEWithLogitsLoss()})
-    Market_loss.update({'gender':nn.BCEWithLogitsLoss()})
-    
-    return Market_loss
+    Returns
+    -------
+    dicts
+        for each key it contains the loss function of that part.
+
+    '''
+    if dataset == 'CA_Market':
+        CA_loss = {}
+        'to define every par loss'
+        CA_loss.update({'gender':nn.BCEWithLogitsLoss()})
+        CA_loss.update({'head':nn.CrossEntropyLoss()})
+        CA_loss.update({'head_colour': nn.CrossEntropyLoss()})
+        CA_loss.update({'body':nn.CrossEntropyLoss()})
+        CA_loss.update({'body_type':nn.BCEWithLogitsLoss()})
+        CA_loss.update({'body_colour':nn.BCEWithLogitsLoss()})
+        CA_loss.update({'bags':nn.CrossEntropyLoss()})
+        CA_loss.update({'leg':nn.CrossEntropyLoss()})
+        CA_loss.update({'leg_colour':nn.CrossEntropyLoss()})
+        CA_loss.update({'foot':nn.CrossEntropyLoss()})
+        CA_loss.update({'foot_colour': nn.CrossEntropyLoss()})
+        CA_loss.update({'age': nn.CrossEntropyLoss()})
+        
+        return CA_loss
+    elif dataset == 'Market_attribute':
+        Market_loss = {}
+        'to define every par loss'
+        Market_loss.update({'age':nn.CrossEntropyLoss()})
+        Market_loss.update({'bags':nn.CrossEntropyLoss()})
+        Market_loss.update({'leg_colour': nn.CrossEntropyLoss()})
+        Market_loss.update({'body_colour':nn.CrossEntropyLoss()})
+        Market_loss.update({'leg_type':nn.BCEWithLogitsLoss()})
+        Market_loss.update({'leg':nn.BCEWithLogitsLoss()})
+        Market_loss.update({'sleeve':nn.BCEWithLogitsLoss()})
+        Market_loss.update({'hair':nn.BCEWithLogitsLoss()})
+        Market_loss.update({'hat':nn.BCEWithLogitsLoss()})
+        Market_loss.update({'gender':nn.BCEWithLogitsLoss()})
+        
+        return Market_loss
 
 def CA_part_loss_calculator(out_data, data, part_loss, categorical = True):
     attr_loss = []
