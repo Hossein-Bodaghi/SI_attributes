@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn 
 from trainings import dict_training_multi_branch
-from utils import get_n_params
+from utils import get_n_params, part_data_delivery
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('calculation is on:',device)
@@ -105,14 +105,16 @@ for child in attr_net.children():
         
 get_n_params(attr_net)
 #%%
-criterion1 = nn.CrossEntropyLoss()
-criterion2 = nn.BCEWithLogitsLoss()
+weights = {'gender':torch.rand(1, device=device),'leg' : torch.rand(3, device=device)}
+#%%
+part_loss = part_data_delivery(weights, dataset='CA_Market')
 
 params = attr_net.parameters()
 
 lr = 3.5e-4
 optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 17], gamma=0.1)
+
 #%%
 save_path = './results/'
 dict_training_multi_branch(num_epoch = 30,
@@ -121,9 +123,8 @@ dict_training_multi_branch(num_epoch = 30,
                       test_loader = test_loader,
                       optimizer = optimizer,
                       scheduler = scheduler,
-                      cce_loss = criterion1,
-                      bce_loss = criterion2,
-                      save_path = save_path,                    
+                      save_path = save_path,  
+                      part_loss = part_loss,
                       device = device,
                       version = 'sif_convt_128_flf_64_clft_CA',
                       resume=False,

@@ -13,7 +13,6 @@ import torch
 import numpy as np
 import torch.nn as nn
 from metrics import tensor_metrics
-from loss_part_delivery import part_data_delivery
 import os
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -26,8 +25,6 @@ tensor_max: takes a matrix and return a matrix with one hot vectors for max argu
 lis2tensor: takes a list containing torch tensors and return a torch matrix  
 id_onehot: takes id tensors and make them one hoted 
 '''
-
-part_loss = part_data_delivery(need_parts=True, dataset='CA_Market')
 
 def tensor_max(tensor):
 
@@ -53,40 +50,6 @@ def id_onehot(id_,num_id):
         a = id_[i]
         id1[i,a-1] = 1
     return id1
-
-def part_data_delivery(weights, dataset='CA_Market'):
-    '''
-    Parameters
-    ----------
-    dataset : ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
-        
-    weiights : should be a dict of required parts and their weights        
-
-    Returns
-    -------
-    dict
-        for each key it contains the loss function of that part.
-
-    '''
-    loss_dict = {}
-    
-    if dataset == 'CA_Market':
-        for key in weights:
-            if key == 'body_type' or key == 'gender' or key == 'body_colour':
-                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key])})
-            else:
-                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key])})
-    
-    elif dataset == 'Market_attribute':
-        
-        for key in weights:
-            if key == 'age' or key == 'bags' or key == 'leg_colour' or key == 'body_colour':
-                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key])})
-                
-            else:
-                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key])})
-        
-    return loss_dict
 
 def CA_part_loss_calculator(out_data, data, part_loss, categorical = True):
     attr_loss = []
@@ -223,7 +186,6 @@ def Market_target_attributes_12(out_data, data, part_loss, tensor_max = False, c
     return y_attr, y_target
 
 
-
 softmax = torch.nn.Softmax(dim=1)
 #%%
 def dict_training_multi_branch(num_epoch,
@@ -235,6 +197,7 @@ def dict_training_multi_branch(num_epoch,
                                save_path,
                                device,
                                version,
+                               part_loss,
                                resume=False,
                                loss_train=None,
                                loss_test=None,
@@ -261,8 +224,8 @@ def dict_training_multi_branch(num_epoch,
         F1_test = []
         Acc_train = []
         Acc_test = []
-    attr_loss_train = torch.zeros((num_epoch,12))
-    attr_loss_test = torch.zeros((num_epoch,12))
+    attr_loss_train = torch.zeros((num_epoch,len(part_loss)))
+    attr_loss_test = torch.zeros((num_epoch,len(part_loss)))
 
     print('epoches started')
     if resume:
@@ -276,8 +239,8 @@ def dict_training_multi_branch(num_epoch,
         attr_net.train()
         loss_e = []
         loss_t = []
-        loss_parts_train = torch.zeros(12)
-        loss_parts_test = torch.zeros(12)
+        loss_parts_train = torch.zeros(len(part_loss))
+        loss_parts_test = torch.zeros(len(part_loss))
 
         # attributes temporary metrics lists
         ft_train = []

@@ -13,8 +13,42 @@ import math
 from PIL import Image
 import random
 import torchvision.transforms as transforms
+import torch.nn as nn
 
 
+def part_data_delivery(weights, dataset='CA_Market'):
+    '''
+    Parameters
+    ----------
+    dataset : ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
+        
+    weiights : should be a dict of required parts and their weights        
+
+    Returns
+    -------
+    dict
+        for each key it contains the loss function of that part.
+
+    '''
+    loss_dict = {}
+    
+    if dataset == 'CA_Market':
+        for key in weights:
+            if key == 'body_type' or key == 'gender' or key == 'body_colour':
+                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key])})
+            else:
+                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key])})
+    
+    elif dataset == 'Market_attribute':
+        
+        for key in weights:
+            if key == 'age' or key == 'bags' or key == 'leg_colour' or key == 'body_colour':
+                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key])})
+                
+            else:
+                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key])})
+        
+    return loss_dict
 def load_attributes(path_attr):
     attr_vec_np = np.load(path_attr)# loading attributes
         # attributes
