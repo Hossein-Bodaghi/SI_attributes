@@ -16,6 +16,42 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 
 
+
+def resampler(clss,img_names,Most_repetition=5):
+    max_num = max(sum(clss))
+    raw_len = len(img_names)
+    for i, num in enumerate(sum(clss)):
+        if num < max_num:
+            if (max_num-num)//num <Most_repetition-1:
+                w=0
+                while (w < (max_num-num)//num):
+                    for k in range (raw_len):
+                        if clss[k, i]==1:
+                            a=clss[k, i]
+                            img_names = np.append(img_names,img_names[k])
+                            clss = torch.cat((clss , clss[torch.tensor([k])]),0)
+                    w+=1
+                j = 0
+                random_idx_list = []
+                while j < (max_num % num):
+                    random_idx = torch.randint(raw_len,(1,))
+                    if clss[random_idx,i] == 1 and random_idx not in random_idx_list:
+                        img_names = np.append(img_names,img_names[random_idx])
+                        clss = torch.cat((clss,clss[random_idx]),0)
+                        random_idx_list.append(random_idx)
+                        j+=1 
+            elif (max_num-num)//num >= Most_repetition-1:
+                w=0
+                while (w < Most_repetition-1):
+                    for k in range (raw_len):
+                        if clss[k, i]==1:
+                            a=clss[k, i]
+                            img_names = np.append(img_names,img_names[k])
+                            clss = torch.cat((clss , clss[torch.tensor([k])]),0)
+                    w+=1
+    return (clss,img_names) 
+
+
 def part_data_delivery(weights, dataset='CA_Market'):
     '''
     Parameters

@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn 
 from trainings import dict_training_multi_branch
-from utils import get_n_params, part_data_delivery
+from utils import get_n_params, part_data_delivery,resampler
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('calculation is on:',device)
@@ -55,6 +55,10 @@ train_data = CA_Loader(img_path=main_path,
                           need_collection=True,
                           need_id = False,
                           two_transforms = False)
+
+train_data.head , train_data.img_names = resampler(train_data.head ,
+                                                     train_data.img_names,
+                                                     Most_repetition = 5)
 
 test_data = CA_Loader(img_path=main_path,
                           attr=attr,
