@@ -130,7 +130,7 @@ def get_width_and_height_from_size(x):
 
 def calculate_output_image_size(input_image_size, stride):
     """
-    计算出 Conv2dSamePadding with a stride.
+    Conv2dSamePadding with a stride.
     """
     if input_image_size is None: return None
     image_height, image_width = get_width_and_height_from_size(input_image_size)
@@ -176,9 +176,7 @@ class Identity(nn.Module):
 
 # MBConvBlock
 class MBConvBlock(nn.Module):
-    '''
-    层 ksize3*3 输入32 输出16  conv1  stride步长1
-    '''
+
     def __init__(self, ksize, input_filters, output_filters, expand_ratio=1, stride=1, image_size=224):
         super().__init__()
         self._bn_mom = 0.1
@@ -254,3 +252,99 @@ class MBConvBlock(nn.Module):
                 x = drop_connect(x, p=drop_connect_rate, training=self.training)
             x = x + inputs  # skip connection
         return x
+
+class CoAtNet(nn.Module):
+    def __init__(self,in_ch,image_size,out_chs=[64,96,192,384,768]):
+        super().__init__()
+        self.out_chs=out_chs
+        self.maxpool2d=nn.MaxPool2d(kernel_size=2,stride=2)
+        self.maxpool1d = nn.MaxPool1d(kernel_size=2, stride=2)
+
+        self.s0=nn.Sequential(
+            nn.Conv2d(in_ch,in_ch,kernel_size=3,padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_ch,in_ch,kernel_size=3,padding=1)
+        )
+        self.mlp0=nn.Sequential(
+            nn.Conv2d(in_ch,out_chs[0],kernel_size=1),
+            nn.ReLU(),
+            nn.Conv2d(out_chs[0],out_chs[0],kernel_size=1)
+        )
+        
+        self.s1=MBConvBlock(ksize=3,input_filters=out_chs[0],output_filters=out_chs[0],image_size=image_size//2)
+        self.mlp1=nn.Sequential(
+            nn.Conv2d(out_chs[0],out_chs[1],kernel_size=1),
+            nn.ReLU(),
+            nn.Conv2d(out_chs[1],out_chs[1],kernel_size=1)
+        )
+
+        self.s2=MBConvBlock(ksize=3,input_filters=out_chs[1],output_filters=out_chs[1],image_size=image_size//4)
+        self.mlp2=nn.Sequential(
+            nn.Conv2d(out_chs[1],out_chs[2],kernel_size=1),
+            nn.ReLU(),
+            nn.Conv2d(out_chs[2],out_chs[2],kernel_size=1)
+        )
+
+        self.s3=ScaledDotProductAttention(out_chs[2],out_chs[2]//8,out_chs[2]//8,8)
+        self.mlp3=nn.Sequential(
+            nn.Linear(out_chs[2],out_chs[3]),
+            nn.ReLU(),
+            nn.Linear(out_chs[3],out_chs[3])
+        )
+
+        self.s4=ScaledDotProductAttention(out_chs[3],out_chs[3]//8,out_chs[3]//8,8)
+        self.mlp4=nn.Sequential(
+            nn.Linear(out_chs[3],out_chs[4]),
+            nn.ReLU(),
+            nn.Linear(out_chs[4],out_chs[4])
+        )
+
+
+    def forward(self, x) :
+        B,C,H,W=x.shape
+        
+        #stage0
+        y=self.mlp0(self.s0(x))
+        print('size of mlp0: ', y.shape, '\n')
+        
+        y=self.maxpool2d(y)
+        print('size of maxpool2d0: ', y.shape, '\n')
+        
+        #stage1
+        y=self.mlp1(self.s1(y))
+        print('size of mlp1: ', y.shape, '\n')
+        
+        y=self.maxpool2d(y)
+        print('size of maxpool2d1: ', y.shape, '\n')
+        
+        #stage2
+        y=self.mlp2(self.s2(y))
+        print('size of mlp2: ', y.shape, '\n')
+        
+        y=self.maxpool2d(y)
+        print('size of maxpool2d2: ', y.shape, '\n')
+        
+        #stage3
+        y=y.reshape(B,self.out_chs[2],-1).permute(0,2,1) #B,N,C
+        print('size of reshape0: ', y.shape, '\n')
+        
+        y=self.mlp3(self.s3(y,y,y))
+        print('size of mlp3: ', y.shape, '\n')
+        
+        y=self.maxpool1d(y.permute(0,2,1)).permute(0,2,1)
+        print('size of maxpool1d1: ', y.shape, '\n')
+        
+        #stage4
+        a = self.s4(y,y,y)
+        print('size of mlp4: ', a.shape, '\n')
+        y=self.mlp4(self.s4(y,y,y))
+        
+        print('size of mlp4: ', y.shape, '\n')
+        
+        y=self.maxpool1d(y.permute(0,2,1))
+        print('size of maxpool1d2: ', y.shape, '\n')
+        N=y.shape[-1]
+        
+        y=y.reshape(B,self.out_chs[4],int(sqrt(N)),int(sqrt(N)))
+        print('size of reshape: ', y.shape, '\n')
+        return y
