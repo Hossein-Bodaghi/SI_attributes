@@ -22,7 +22,7 @@ layers = [2, 2, 2]
 channels = [16, 64, 384, 512] # channels are the only difference between os_net_x_1 and others 
 
 
-def make_coatnet(
+def _make_layer(
     block,
     layer,
     in_channels,
@@ -317,7 +317,7 @@ class mb_os_build_model(nn.Module):
                     conv_layer=None, sep_fc=False,
                     sep_clf=False, need_feature=False):
         ''' fc_layer should be a list of fully connecteds
-            clf_layer hould be a list of classifiers
+            clf_layer should be a list of classifiers
         '''
         # handling conv layer
         if conv_layer:
@@ -441,212 +441,170 @@ class mb_transformer_build_model(nn.Module):
                  attr_dim = 128,
                  dropout_p = 0.3,
                  sep_conv_size = None,
-                 sep_fc = False,
-                 sep_clf = False):
+                 ):
         
         super().__init__()        
         self.feature_dim = main_cov_size
         self.dropout_p = dropout_p 
-        self.global_avgpool = nn.AdaptiveAvgPool2d(1)
-        self.softmax = nn.Softmax(dim=1)
-        self.sigmoid = nn.Sigmoid()
         self.model = model
-        self.sep_conv_size = sep_conv_size
-        self.attr_dim = attr_dim
-        self.sep_fc = sep_fc
-        self.sep_clf = sep_clf
-        # convs
-        if self.sep_conv_size:
-            self.attr_feat_dim = sep_conv_size
-            # head
-            self.conv_head = _make_layer(blocks[2],
-                                        layers[2],
-                                        self.feature_dim,
-                                        self.sep_conv_size,
-                                        reduce_spatial_size=False
+        
+        # convs + transforms:
+        # head
+        self.conv_head = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
                                         )
-            # body
-            self.conv_body = _make_layer(
-                                            blocks[2],
-                                            layers[2],
-                                            self.feature_dim,
-                                            self.sep_conv_size,
-                                            reduce_spatial_size=False
-                                        )            
-            # leg
-            self.conv_leg = _make_layer(    blocks[2],
-                                            layers[2],
-                                            self.feature_dim,
-                                            self.sep_conv_size,
-                                            reduce_spatial_size=False
-                                        )                
-            # foot
-            self.conv_foot = _make_layer(
-                                            blocks[2],
-                                            layers[2],
-                                            self.feature_dim,
-                                            self.sep_conv_size,
-                                            reduce_spatial_size=False
-                                        )            
-            
-            # gender & age
-            self.conv_general = _make_layer(
-                                            blocks[2],
-                                            layers[2],
-                                            self.feature_dim,
-                                            self.sep_conv_size,
-                                            reduce_spatial_size=False
+        self.trans_head1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_head2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_head1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_head2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # head_color
+        self.conv_head_color = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
                                         )
-            # bags
-            self.conv_bags = _make_layer(
-                                            blocks[2],
-                                            layers[2],
-                                            self.feature_dim,
-                                            self.sep_conv_size,
-                                            reduce_spatial_size=False
-                                        )        
-        else:
-            self.attr_feat_dim = main_cov_size
-            # head
-            self.conv_head = None
-            # body
-            self.conv_body = None          
-            # leg
-            self.conv_leg = None               
-            # foot
-            self.conv_foot = None           
-            # gender & age
-            self.conv_general = None
-            # bags
-            self.conv_bags = None       
+        self.trans_head_color1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_head_color2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_head_color1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_head_color2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # body
+        self.conv_body = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        )           
+        self.trans_body1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_body2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_body1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_body2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # body_color
+        self.conv_body_color = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        ) 
+        self.trans_body_color1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_body_color2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_body_color1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_body_color2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # body_type
+        self.conv_body_type = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        ) 
+        self.trans_body_type1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_body_type2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_body_type1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_body_type2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # leg
+        self.conv_leg = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        )               
+        self.trans_leg1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_leg2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_leg1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_leg2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # leg_color
+        self.conv_leg_color = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        ) 
+        self.trans_leg_color1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_leg_color2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_leg_color1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_leg_color2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # foot
+        self.conv_foot = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        )            
+        self.trans_foot1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_foot2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_foot1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_foot2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # foot_color
+        self.conv_foot_color = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        )          
+        self.trans_foot_color1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_foot_color2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_foot_color1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_foot_color2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # gender
+        self.conv_gender = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        )
+        self.trans_gender1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_gender2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_gender1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_gender2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # age
+        self.conv_age = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        )
+        self.trans_age1 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.trans_age2 = ScaledDotProductAttention(128, 16, 16, 8)
+        self.mlp_age1 = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 128))
+        self.mlp_age2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
+        # bags
+        self.conv_bags = nn.Sequential(MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8)),
+                                            nn.Conv2d(128, 128, kernel_size=1),
+                                            nn.ReLU(),
+                                            nn.Conv2d(128, 128, kernel_size=1)
+                                        )             
             
         # fully connecteds
-        if self.sep_fc:
-            # head
-            self.head_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.head_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)           
-            self.head_fcc = []
-            self.head_fcc.append(self.head_fc)
-            self.head_fcc.append(self.head_color_fc)
-            # upper body
-            self.body_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.body_type_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.body_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
-            self.upper_body_fcc = []
-            self.upper_body_fcc.append(self.body_fc)
-            self.upper_body_fcc.append(self.body_type_fc )
-            self.upper_body_fcc.append(self.body_color_fc) 
-            #lower body
-            self.leg_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.leg_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
-            self.lower_body_fcc = []
-            self.lower_body_fcc.append(self.leg_fc)
-            self.lower_body_fcc.append(self.leg_color_fc) 
-            #foot
-            self.foot_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.foot_color_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
-            self.foot_fcc = []
-            self.foot_fcc.append(self.foot_fc)
-            self.foot_fcc.append(self.foot_color_fc)   
-            #bags
-            self.bag_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)            
-            self.bag_fcc = []
-            self.bag_fcc.append(self.bag_fc)     
-            # general
-            self.age_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.gender_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.general_fcc = []
-            self.general_fcc.append(self.age_fc)
-            self.general_fcc.append(self.gender_fc)
-        else:
-            # head
-            self.head_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)                        
-            self.head_fcc = []
-            self.head_fcc.append(self.head_fc) 
-            # upper body
-            self.body_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.upper_body_fcc = []
-            self.upper_body_fcc.append(self.body_fc)  
-            #lower body
-            self.leg_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.lower_body_fcc = []
-            self.lower_body_fcc.append(self.leg_fc) 
-            #foot
-            self.foot_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.foot_fcc = []
-            self.foot_fcc.append(self.foot_fc)  
-            #bags
-            self.bag_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p) 
-            self.bag_fcc = []
-            self.bag_fcc.append(self.bag_fc)  
-            # general
-            self.general_fc = self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p)
-            self.general_fcc = []
-            self.general_fcc.append(self.general_fc)  
+        # head
+        self.head_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
+        self.head_color_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)           
+        # upper body
+        self.body_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
+        self.body_type_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
+        self.body_color_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)            
+        #lower body
+        self.leg_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
+        self.leg_color_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)            
+        #foot
+        self.foot_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
+        self.foot_color_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)            
+        #bags
+        self.bag_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)              
+        # general
+        self.age_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
+        self.gender_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
             
         # classifiers
-        if self.sep_clf:
-            # head
-            self.head_clf = nn.Linear(self.attr_dim, 5)
-            self.head_color_clf = nn.Linear(self.attr_dim, 2)
-            self.head_clff = []
-            self.head_clff.append(self.head_clf)
-            self.head_clff.append(self.head_color_clf)
-            # body
-            self.body_clf = nn.Linear(self.attr_dim, 4)
-            self.body_type_clf = nn.Linear(self.attr_dim, 1)
-            self.body_color_clf = nn.Linear(self.attr_dim, 8)
-            self.upper_body_clff = []
-            self.upper_body_clff.append(self.body_clf)
-            self.upper_body_clff.append(self.body_type_clf )
-            self.upper_body_clff.append(self.body_color_clf) 
-            # leg
-            self.leg_clf = nn.Linear(self.attr_dim, 3)
-            self.leg_color_clf = nn.Linear(self.attr_dim, 9)
-            self.lower_body_clff = []
-            self.lower_body_clff.append(self.leg_clf)
-            self.lower_body_clff.append(self.leg_color_clf) 
-            # foot
-            self.foot_clf = nn.Linear(self.attr_dim, 3)
-            self.foot_color_clf = nn.Linear(self.attr_dim, 4)
-            self.foot_clff = []
-            self.foot_clff.append(self.foot_clf)
-            self.foot_clff.append(self.foot_color_clf) 
-            # bag
-            self.bag_clf = nn.Linear(self.attr_dim, 4)
-            self.bag_clff = []
-            self.bag_clff.append(self.bag_clf)  
-            # gender
-            self.age_clf = nn.Linear(self.attr_dim, 4)
-            self.gender_clf = nn.Linear(self.attr_dim, 1)                    
-            self.general_clff = []
-            self.general_clff.append(self.age_clf)
-            self.general_clff.append(self.gender_clf)
-        else:
-            # head
-            self.head_clf = nn.Linear(self.attr_dim, 7)
-            self.head_clff = []
-            self.head_clff.append(self.head_clf)           
-            # body
-            self.body_clf = nn.Linear(self.attr_dim, 13)
-            self.upper_body_clff = []
-            self.upper_body_clff.append(self.body_clf)          
-            # leg
-            self.leg_clf = nn.Linear(self.attr_dim, 12)
-            self.lower_body_clff = []
-            self.lower_body_clff.append(self.leg_clf)     
-            # foot
-            self.foot_clf = nn.Linear(self.attr_dim, 7)
-            self.foot_clff = []
-            self.foot_clff.append(self.foot_clf)
-            # bag
-            self.bag_clf = nn.Linear(self.attr_dim, 4)
-            self.bag_clff = []
-            self.bag_clff.append(self.bag_clf)  
-            # gender
-            self.general_clf = nn.Linear(self.attr_dim, 5)                 
-            self.general_clff = []
-            self.general_clff.append(self.general_clf)
+        # head
+        self.head_clf = nn.Linear(self.attr_dim, 5)
+        self.head_color_clf = nn.Linear(self.attr_dim, 2)
+        # body
+        self.body_clf = nn.Linear(self.attr_dim, 4)
+        self.body_type_clf = nn.Linear(self.attr_dim, 1)
+        self.body_color_clf = nn.Linear(self.attr_dim, 8)
+        # leg
+        self.leg_clf = nn.Linear(self.attr_dim, 3)
+        self.leg_color_clf = nn.Linear(self.attr_dim, 9)
+        # foot
+        self.foot_clf = nn.Linear(self.attr_dim, 3)
+        self.foot_color_clf = nn.Linear(self.attr_dim, 4)
+        # bag
+        self.bag_clf = nn.Linear(self.attr_dim, 4)
+        # gender
+        self.age_clf = nn.Linear(self.attr_dim, 4)
+        self.gender_clf = nn.Linear(self.attr_dim, 1)                    
     
     def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
         if fc_dims is None or fc_dims < 0:
