@@ -437,16 +437,15 @@ class mb_transformer_build_model(nn.Module):
     
     def __init__(self,
                  model,
-                 main_cov_size = 512,
+                 main_cov_size = 128,
                  attr_dim = 128,
-                 dropout_p = 0.3,
-                 sep_conv_size = None,
-                 ):
+                 dropout_p = 0.3):
         
         super().__init__()        
         self.feature_dim = main_cov_size
         self.dropout_p = dropout_p 
         self.model = model
+        self.attr_dim = attr_dim
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         self.maxpool1d = nn.MaxPool1d(kernel_size=2, stride=2)
         

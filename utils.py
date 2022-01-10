@@ -51,6 +51,31 @@ def resampler(clss,img_names,Most_repetition=5):
                     w+=1
     return (clss,img_names) 
 
+def attr_number(attr):
+    attr_numbers = {}
+    for key in attr:
+        if key == 'img_names' or key == 'id':
+            pass
+        else:
+            number = torch.sum(attr[key], dim=0)
+            attr_numbers.update({key:number})    
+    return attr_numbers
+
+def attr_weight(attr, max_num=25259, beta = 0.99):
+    '''
+    source: 
+        https://openaccess.thecvf.com/content_CVPR_2019/papers/Cui_Class-Balanced_Loss_Based_on_Effective_Number_of_Samples_CVPR_2019_paper.pdf
+    '''
+    attr_numbers = attr_number(attr)
+    attr_weights = {}
+    for key in attr_numbers:
+        weight = torch.ones_like(attr_numbers[key], dtype=torch.float32)
+        for i, n in enumerate(attr_numbers[key]):
+            w = (1 - beta) / (1 - beta**n.item())
+            weight[i] = w
+        attr_weights.update({key : weight})
+    return attr_weights
+        
 
 def part_data_delivery(weights, dataset='CA_Market'):
     '''

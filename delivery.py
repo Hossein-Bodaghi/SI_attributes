@@ -41,11 +41,11 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
     
     if need_parts:  
         if dataset == 'CA_Market':                        
-            output.update({'gender':attr_vec[:,0],
+            output.update({'gender':attr_vec[:,0].reshape(len(attr_vec), 1),
                         'head':attr_vec[:,1:6],
                         'head_colour':attr_vec[:,6:8],
                         'body':attr_vec[:,8:12],
-                        'body_type':attr_vec[:,12],
+                        'body_type':attr_vec[:,12].reshape(len(attr_vec), 1),
                         'body_colour':attr_vec[:,13:21],
                         'bags':attr_vec[:,21:25],
                         'leg':attr_vec[:,25:28],
