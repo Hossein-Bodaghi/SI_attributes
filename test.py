@@ -25,7 +25,7 @@ model = models.build_model(
 
 weight_path = './checkpoints/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
 utils.load_pretrained_weights(model, weight_path)
-
+global_avgpool = nn.AdaptiveAvgPool2d(1)
 out_conv_4 = model.layer_extractor(input, 'out_conv4') 
 
 s2 = MBConvBlock(ksize=3,input_filters=512, output_filters=128, image_size=(16,8))
