@@ -59,20 +59,20 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
                         'bags':attr_vec[:,4:7],
                         'leg_colour':attr_vec[:,7:16],
                         'body_colour':attr_vec[:,16:24],
-                        'leg_type':attr_vec[:,24],
-                        'leg':attr_vec[:,25],
-                        'sleeve':attr_vec[:,26],
-                        'hair':attr_vec[:,27],
-                        'hat':attr_vec[:,28],
-                        'gender':attr_vec[:,29]})        
+                        'leg_type':attr_vec[:,24].reshape(len(attr_vec), 1),
+                        'leg':attr_vec[:,25].reshape(len(attr_vec), 1),
+                        'sleeve':attr_vec[:,26].reshape(len(attr_vec), 1),
+                        'hair':attr_vec[:,27].reshape(len(attr_vec), 1),
+                        'hat':attr_vec[:,28].reshape(len(attr_vec), 1),
+                        'gender':attr_vec[:,29].reshape(len(attr_vec), 1)})        
             
         elif dataset == 'Duke_attribute':
             output.update({'bags':attr_vec[:,0:3],
-                        'boot':attr_vec[:,3],
-                        'gender':attr_vec[:,4],
-                        'hat':attr_vec[:,5],
-                        'foot_colour':attr_vec[:,6],
-                        'body':attr_vec[:,7],
+                        'boot':attr_vec[:,3].reshape(len(attr_vec), 1),
+                        'gender':attr_vec[:,4].reshape(len(attr_vec), 1),
+                        'hat':attr_vec[:,5].reshape(len(attr_vec), 1),
+                        'foot_colour':attr_vec[:,6].reshape(len(attr_vec), 1),
+                        'body':attr_vec[:,7].reshape(len(attr_vec), 1),
                         'leg_colour':attr_vec[:,8:15],
                         'body_colour':attr_vec[:,15:22]}) 
     return output

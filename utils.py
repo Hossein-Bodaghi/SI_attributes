@@ -61,7 +61,7 @@ def attr_number(attr):
             attr_numbers.update({key:number})    
     return attr_numbers
 
-def attr_weight(attr, max_num=25259, beta = 0.99):
+def attr_weight(attr, device, max_num=25259, beta = 0.99):
     '''
     source: 
         https://openaccess.thecvf.com/content_CVPR_2019/papers/Cui_Class-Balanced_Loss_Based_on_Effective_Number_of_Samples_CVPR_2019_paper.pdf
@@ -69,7 +69,7 @@ def attr_weight(attr, max_num=25259, beta = 0.99):
     attr_numbers = attr_number(attr)
     attr_weights = {}
     for key in attr_numbers:
-        weight = torch.ones_like(attr_numbers[key], dtype=torch.float32)
+        weight = torch.ones_like(attr_numbers[key], dtype=torch.float32, device = device)
         for i, n in enumerate(attr_numbers[key]):
             w = (1 - beta) / (1 - beta**n.item())
             weight[i] = w
@@ -77,7 +77,7 @@ def attr_weight(attr, max_num=25259, beta = 0.99):
     return attr_weights
         
 
-def part_data_delivery(weights, dataset='CA_Market'):
+def part_data_delivery(weights, device, dataset='CA_Market'):
     '''
     Parameters
     ----------
@@ -96,18 +96,18 @@ def part_data_delivery(weights, dataset='CA_Market'):
     if dataset == 'CA_Market':
         for key in weights:
             if key == 'body_type' or key == 'gender' or key == 'body_colour':
-                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key])})
+                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
             else:
-                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key])})
+                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
     
     elif dataset == 'Market_attribute':
         
         for key in weights:
             if key == 'age' or key == 'bags' or key == 'leg_colour' or key == 'body_colour':
-                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key])})
+                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
                 
             else:
-                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key])})
+                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
         
     return loss_dict
 def load_attributes(path_attr):

@@ -29,7 +29,7 @@ attr = data_delivery(main_path,
                   need_attr=False,
                   dataset = 'CA_Market')
 
-attr_weights = attr_weight(attr, beta = 0.99)
+attr_weights = attr_weight(attr, device = device, beta = 0.99)
     
 train_idx_path = './attributes/train_idx_full.pth' 
 test_idx_path = './attributes/test_idx_full.pth'
@@ -57,9 +57,9 @@ train_data = CA_Loader(img_path=main_path,
                           need_id = False,
                           two_transforms = False)
 
-train_data.head , train_data.img_names = resampler(train_data.head ,
-                                                     train_data.img_names,
-                                                     Most_repetition = 3)
+# train_data.head , train_data.img_names = resampler(train_data.head ,
+#                                                      train_data.img_names,
+#                                                      Most_repetition = 3)
 
 test_data = CA_Loader(img_path=main_path,
                           attr=attr,
@@ -90,51 +90,43 @@ weight_path = './checkpoints/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0
 utils.load_pretrained_weights(model, weight_path)
 # sep_fc = True and sep_clf = False is not possible
 attr_net = mb_transformer_build_model(model,
-                 main_cov_size = 128,
-                 attr_dim = 128,
-                 dropout_p = 0.3)
+                                      device = device,
+                                      main_cov_size = 128,
+                                      attr_dim = 128,
+                                      dropout_p = 0.3)
 
-attr_net = attr_net.to(device)
-
-i = 0
-for child in attr_net.children():
-    i += 1
-    # print(i)
-    # print(child)
-    if i == 10:
-    #     # print(child)
-        a = get_n_params(child)
-        
+attr_net = attr_net.to(device)        
 get_n_params(attr_net)
-# #%%
-# weights = {'head':torch.rand(1, device=device)}
-# #%%
-# part_loss = part_data_delivery(weights, dataset='CA_Market')
-
-# params = attr_net.parameters()
-
-# lr = 3.5e-4
-# optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
-# scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 17], gamma=0.1)
 
 #%%
-# save_path = './results/'
-# dict_training_multi_branch(num_epoch = 30,
-#                       attr_net = attr_net,
-#                       train_loader = train_loader,
-#                       test_loader = test_loader,
-#                       optimizer = optimizer,
-#                       scheduler = scheduler,
-#                       save_path = save_path,  
-#                       part_loss = part_loss,
-#                       device = device,
-#                       version = 'sif_convt_128_flf_64_clft_CA',
-#                       resume=False,
-#                       loss_train = None,
-#                       loss_test=None,
-#                       train_attr_F1=None,
-#                       test_attr_F1=None,
-#                       train_attr_acc=None,
-#                       test_attr_acc=None,  
-#                       stoped_epoch=None)
+part_loss = part_data_delivery(attr_weights, device = device, dataset='CA_Market')
+
+params = attr_net.parameters()
+
+lr = 3.5e-4
+optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
+scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 17], gamma=0.1)
+#%%
+# input=torch.randn(3,3,256,128).to(device)
+# out = attr_net(input)
+#%%
+save_path = './results/'
+dict_training_multi_branch(num_epoch = 30,
+                      attr_net = attr_net,
+                      train_loader = train_loader,
+                      test_loader = test_loader,
+                      optimizer = optimizer,
+                      scheduler = scheduler,
+                      save_path = save_path,  
+                      part_loss = part_loss,
+                      device = device,
+                      version = 'sif_convt_128_flf_64_clft_CA',
+                      resume=False,
+                      loss_train = None,
+                      loss_test=None,
+                      train_attr_F1=None,
+                      test_attr_F1=None,
+                      train_attr_acc=None,
+                      test_attr_acc=None,  
+                      stoped_epoch=None)
 

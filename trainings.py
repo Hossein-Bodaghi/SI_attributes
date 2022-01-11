@@ -56,7 +56,7 @@ def CA_part_loss_calculator(out_data, data, part_loss, categorical = True):
     if categorical:
         for key, loss in part_loss.items():
             if key == 'body_type' or key == 'gender':
-                loss_part = loss(out_data[key].squeeze(), data[key].float())
+                loss_part = loss(out_data[key], data[key].float())
             elif key == 'body_colour':
                 loss_part = loss(out_data[key], data[key].float())
             else :
@@ -78,7 +78,7 @@ def Market_part_loss_calculator(out_data, data, part_loss, categorical = True):
             if key == 'age' or key == 'bags' or key == 'leg_colour' or key == 'body_colour':
                 loss_part = loss(out_data[key], data[key].argmax(dim=1))
             else :
-                loss_part = loss(out_data[key].squeeze(), data[key].float())
+                loss_part = loss(out_data[key], data[key].float())
             attr_loss.append(loss_part)
     if not categorical:
         for key, loss in part_loss.items():
@@ -98,9 +98,9 @@ def CA_target_attributes_12(out_data, data, part_loss, tensor_max = False, categ
             if key == 'body_type' or key == 'gender':
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
                 if m == 0:
-                    y_target = data[key].unsqueeze(dim=1)
+                    y_target = data[key]
                 else:
-                    y_target = torch.cat((y_target, data[key].unsqueeze(dim=1)),dim = 1)
+                    y_target = torch.cat((y_target, data[key]),dim = 1)
             elif key == 'body_colour':
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
                 if m == 0:
@@ -159,9 +159,9 @@ def Market_target_attributes_12(out_data, data, part_loss, tensor_max = False, c
             else :
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
                 if m == 0:
-                    y_target = data[key].unsqueeze(dim=1)
+                    y_target = data[key]
                 else:
-                    y_target = torch.cat((y_target, data[key].unsqueeze(dim=1)),dim = 1)
+                    y_target = torch.cat((y_target, data[key]),dim = 1)
             if m == 0:
                 y_attr = y
             else:

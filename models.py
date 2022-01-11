@@ -437,6 +437,7 @@ class mb_transformer_build_model(nn.Module):
     
     def __init__(self,
                  model,
+                 device,
                  main_cov_size = 128,
                  attr_dim = 128,
                  dropout_p = 0.3):
@@ -448,6 +449,7 @@ class mb_transformer_build_model(nn.Module):
         self.attr_dim = attr_dim
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         self.maxpool1d = nn.MaxPool1d(kernel_size=2, stride=2)
+        self.device = device
         
         # convs + transforms:
         # head
@@ -573,43 +575,43 @@ class mb_transformer_build_model(nn.Module):
         self.mlp_bags2 = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 32))
         # fully connecteds
         # head
-        self.head_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
-        self.head_color_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)           
+        self.head_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]
+        self.head_color_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]           
         # upper body
-        self.body_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
-        self.body_type_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
-        self.body_color_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)            
+        self.body_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]
+        self.body_type_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]
+        self.body_color_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]            
         #lower body
-        self.leg_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
-        self.leg_color_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)            
+        self.leg_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]
+        self.leg_color_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]           
         #foot
-        self.foot_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
-        self.foot_color_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)            
+        self.foot_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]
+        self.foot_color_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]            
         #bags
-        self.bags_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)              
+        self.bags_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]             
         # general
-        self.age_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
-        self.gender_fc = self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p)
+        self.age_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]
+        self.gender_fc = [self._construct_fc_layer(self.attr_dim, 1024, dropout_p=dropout_p).to(self.device)]
             
         # classifiers
         # head
-        self.head_clf = nn.Linear(self.attr_dim, 5)
-        self.head_color_clf = nn.Linear(self.attr_dim, 2)
+        self.head_clf = [nn.Linear(self.attr_dim, 5).to(self.device)]
+        self.head_color_clf = [nn.Linear(self.attr_dim, 2).to(self.device)]
         # body
-        self.body_clf = nn.Linear(self.attr_dim, 4)
-        self.body_type_clf = nn.Linear(self.attr_dim, 1)
-        self.body_color_clf = nn.Linear(self.attr_dim, 8)
+        self.body_clf = [nn.Linear(self.attr_dim, 4).to(self.device)]
+        self.body_type_clf = [nn.Linear(self.attr_dim, 1).to(self.device)]
+        self.body_color_clf = [nn.Linear(self.attr_dim, 8).to(self.device)]
         # leg
-        self.leg_clf = nn.Linear(self.attr_dim, 3)
-        self.leg_color_clf = nn.Linear(self.attr_dim, 9)
+        self.leg_clf = [nn.Linear(self.attr_dim, 3).to(self.device)]
+        self.leg_color_clf = [nn.Linear(self.attr_dim, 9).to(self.device)]
         # foot
-        self.foot_clf = nn.Linear(self.attr_dim, 3)
-        self.foot_color_clf = nn.Linear(self.attr_dim, 4)
+        self.foot_clf = [nn.Linear(self.attr_dim, 3).to(self.device)]
+        self.foot_color_clf = [nn.Linear(self.attr_dim, 4).to(self.device)]
         # bag
-        self.bags_clf = nn.Linear(self.attr_dim, 4)
+        self.bags_clf = [nn.Linear(self.attr_dim, 4).to(self.device)]
         # gender
-        self.age_clf = nn.Linear(self.attr_dim, 4)
-        self.gender_clf = nn.Linear(self.attr_dim, 1)                    
+        self.age_clf = [nn.Linear(self.attr_dim, 4).to(self.device)]
+        self.gender_clf = [nn.Linear(self.attr_dim, 1).to(self.device)]                    
     
     def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
         if fc_dims is None or fc_dims < 0:
@@ -677,7 +679,7 @@ class mb_transformer_build_model(nn.Module):
         # handling conv layer
         if conv_layer:
             x = conv_layer(x)
-        x = x.reshape(1, 128, -1).permute(0,2,1)
+        x = x.reshape(x.size(0), 128, -1).permute(0,2,1)
         x = mlp1(trans1(x, x, x))
         x = self.maxpool1d(x.permute(0,2,1)).permute(0,2,1) 
         x = mlp2(trans2(x, x, x))
