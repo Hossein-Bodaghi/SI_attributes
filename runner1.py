@@ -6,7 +6,7 @@ Created on Tue Jan 11 20:07:29 2022
 @author: hossein
 """
 # repository imports
-from utils import get_n_params, part_data_delivery, resampler, attr_weight
+from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx
 from trainings import dict_training_multi_branch
 from models import mb_transformer_build_model, mb_os_build_model
 from delivery import data_delivery
@@ -31,7 +31,7 @@ def parse_args():
         '--dataset',
         type = str,
         help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]',
-        default='Market_attribute')
+        default='CA_Market')
     
     parser.add_argument(
         '--main_path',
@@ -54,9 +54,8 @@ def parse_args():
     parser.add_argument(
         '--attr_path',
         type = str,
-        help ='./attributes/CA_Market.npy'+
-                './attributes/Market_attribute_with_id.npy',
-        default = './attributes/Market_attribute_with_id.npy')
+        help = './attributes/CA_Market.npy' + './attributes/Market_attribute_with_id.npy',
+        default = './attributes/CA_Market.npy' )
 
     parser.add_argument(
         '--attr_path_train',
@@ -75,12 +74,25 @@ def parse_args():
         type = str,
         help = 'categorized or vectorized',
         default='categorized')
+    
+    parser.add_argument(
+        '--training_part',
+        type = str,
+        help = 'all CA_Market: [age, head_colour, head, body body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
+        + 'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]',
+        default='age')
 
     parser.add_argument(
         '--sampler_max',
         type = int,
         help = 'maxmimum iteration of images, if 1 nothing would change',
         default = 2)
+
+    parser.add_argument(
+        '--batch_size',
+        type = int,
+        help = 'training batch size',
+        default = 32)
     
     parser.add_argument(
         '--model',
@@ -131,7 +143,7 @@ part_based = True if args.training_strategy == 'categorized' else False # if cat
                                                                         # elif vectorize, only an attribute vector will be generated 
 
 if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
-    main_path = args.main_path  
+    main_path = args.main_path   
     path_attr = args.attr_path 
     attr = data_delivery(main_path,
                   path_attr=path_attr,
@@ -166,7 +178,8 @@ else:
                       dataset = args.dataset)
     
     train_idx = np.arange(len(attr_train['img_names']))
-    test_idx = np.arange(len(attr_test['img_names']))
+    test_idx = np.arange(len(attr_test['img_names']))  
+        
     
     print('\n', 'train-set specifications') 
     for key , value in attr_train.items():       
@@ -179,7 +192,8 @@ else:
         try: print(key , 'size is: \t {}'.format((value.size())))
         except TypeError:
           print(key)
-
+          
+test_idx = validation_idx(test_idx)
 #%%    
 ''' Delivering data as attr dictionaries '''
 
@@ -189,35 +203,64 @@ train_transform = transforms.Compose([
                             transforms.ColorJitter(saturation=[1,3])
                             ])
 
+    
+if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
+        
+    train_data = CA_Loader(img_path=main_path,
+                              attr=attr,
+                              resolution=(256,128),
+                              transform=train_transform,
+                              indexes=train_idx,
+                              dataset = args.dataset,
+                              need_attr = not part_based,
+                              need_collection = part_based,
+                              need_id = False,
+                              two_transforms = True)
+    
+    test_data = CA_Loader(img_path=main_path,
+                              attr=attr,
+                              resolution=(256, 128),
+                              indexes=test_idx,
+                              dataset = args.dataset,
+                              need_attr = not part_based,
+                              need_collection = part_based,
+                              need_id = False,
+                              two_transforms = True) 
 
-train_data = CA_Loader(img_path=main_path,
-                          attr=attr,
-                          resolution=(256,128),
-                          transform=train_transform,
-                          indexes=train_idx,
-                          need_attr =False,
-                          need_collection=True,
-                          need_id = False,
-                          two_transforms = False)
+else:
+    train_data = CA_Loader(img_path=train_img_path,
+                              attr=attr_train,
+                              resolution=(256,128),
+                              transform=train_transform,
+                              indexes=train_idx,
+                              dataset = args.dataset,
+                              need_attr = not part_based,
+                              need_collection = part_based,
+                              need_id = False,
+                              two_transforms = True)
+    test_data = CA_Loader(img_path=test_img_path,
+                              attr=attr_test,
+                              resolution=(256, 128),
+                              indexes=test_idx,
+                              dataset = args.dataset,
+                              need_attr = not part_based,
+                              need_collection = part_based,
+                              need_id = False,
+                              two_transforms = True) 
+    
+  
+if args.training_part == 'all':
+    pass
+else:
+    train_data.__dict__[args.training_part] , train_data.__dict__['img_names'] = resampler(train_data.__dict__[args.training_part] ,
+                                                          train_data.__dict__['img_names'],
+                                                          Most_repetition = args.sampler_max)  
 
-train_data.head , train_data.img_names = resampler(train_data.head ,
-                                                      train_data.img_names,
-                                                      Most_repetition = 5)
+batch_size = 32
+train_loader = DataLoader(train_data,batch_size=batch_size,shuffle=True)
+test_loader = DataLoader(test_data,batch_size=100,shuffle=False)
 
-# test_data = CA_Loader(img_path=main_path,
-#                           attr=attr,
-#                           resolution=(256, 128),
-#                           indexes=test_idx,
-#                           need_attr = False,
-#                           need_collection=True,
-#                           need_id = False,
-#                           two_transforms = False,                          
-#                           ) 
-
-# batch_size = 32
-# train_loader = DataLoader(train_data,batch_size=batch_size,shuffle=True)
-# test_loader = DataLoader(test_data,batch_size=100,shuffle=False)
-# #%%
+#%%
 # torch.cuda.empty_cache()
 # from torchreid import models
 # from torchreid import utils

@@ -48,7 +48,7 @@ def get_image(addr,height,width):
 class CA_Loader(Dataset):
     '''
     attr is a dictionary contains:
-        
+        CA_MArket:
         1) head (cap,bald,sh,lhs,lhn)
         2) body (shirt,coat,top) 
         3) body_type (simple,patterned)
@@ -61,16 +61,28 @@ class CA_Loader(Dataset):
         10) foot_colour (9 colours)
         11) img_names: names of images in source path
         12) id is the identification number of each picture
+    
+        Market_attribute:
+            'age',
+            'bags',
+            'leg_colour',
+            'body_colour',
+            'leg_type',
+            'leg',
+            'sleeve',
+            'hair',
+            'hat',
+            'gender'
+            
     img_path: the folder of our source images. '/home/hossein/reid-data/market1501/Market-1501-v15.09.15/gt_bbox/'
     resolution: the final dimentions of images (height,width) (256,128)
     transform: images transformations
-    
-    
     '''
     def __init__(self,img_path,
                  attr,
                  resolution,
                  indexes,
+                 dataset='CA_Market',
                  transform=None,
                  need_attr = True,
                  need_collection=True,
@@ -83,6 +95,7 @@ class CA_Loader(Dataset):
         self.need_collection = need_collection
         self.need_id = need_id
         self.two_transforms = two_transforms
+        self.dataset = dataset
         
         # images variables:
         self.img_path = img_path
@@ -94,19 +107,45 @@ class CA_Loader(Dataset):
             self.id = train_ids
         
         # attributes variables:
+            
         if self.need_collection:
-            self.head = attr['head'][indexes]
-            self.head_colour = attr['head_colour'][indexes]
-            self.body = attr['body'][indexes]
-            self.body_type = attr['body_type'][indexes]
-            self.leg = attr['leg'][indexes]
-            self.foot = attr['foot'][indexes]
-            self.gender = attr['gender'][indexes]
-            self.bags = attr['bags'][indexes]
-            self.body_colour = attr['body_colour'][indexes]
-            self.leg_colour = attr['leg_colour'][indexes]
-            self.foot_colour = attr['foot_colour'][indexes]
-            self.age = attr['age'][indexes]
+            if dataset == 'CA_Market':
+                self.head = attr['head'][indexes]
+                self.head_colour = attr['head_colour'][indexes]
+                self.body = attr['body'][indexes]
+                self.body_type = attr['body_type'][indexes]
+                self.leg = attr['leg'][indexes]
+                self.foot = attr['foot'][indexes]
+                self.gender = attr['gender'][indexes]
+                self.bags = attr['bags'][indexes]
+                self.body_colour = attr['body_colour'][indexes]
+                self.leg_colour = attr['leg_colour'][indexes]
+                self.foot_colour = attr['foot_colour'][indexes]
+                self.age = attr['age'][indexes]
+            elif dataset == 'Market_attribute':
+                # commons:
+                self.age = attr['age'][indexes]
+                self.gender = attr['gender'][indexes]
+                self.bags = attr['bags'][indexes]
+                self.leg_colour = attr['leg_colour'][indexes]
+                self.body_colour = attr['body_colour'][indexes]
+                self.leg = attr['leg'][indexes]
+                # not common
+                self.hair = attr['hair'][indexes]
+                self.hat = attr['hat'][indexes]
+                self.sleeve = attr['sleeve'][indexes]
+                self.leg_type = attr['leg_type'][indexes]
+                
+            elif dataset == 'Duke_attribute':
+                self.bags = attr['bags'][indexes]
+                self.boot = attr['boot'][indexes]
+                self.gender = attr['gender'][indexes]
+                self.hat = attr['hat'][indexes]
+                self.foot_colour = attr['foot_colour'][indexes]
+                self.body = attr['body'][indexes]
+                self.leg_colour = attr['leg_colour'][indexes]
+                self.body_colour = attr['body_colour'][indexes]
+                
         if self.need_attr:
             self.attr = attr['attributes'][indexes]           
         
@@ -142,135 +181,47 @@ class CA_Loader(Dataset):
         if self.need_attr:
             out.update({'attr':self.attr[idx]})
         if self.need_collection:
-            out.update({
-                'head':self.head[idx],
-                'head_colour':self.head_colour[idx],
-                'body':self.body[idx],
-                'body_type':self.body_type[idx],
-                'leg':self.leg[idx],
-                'foot':self.foot[idx],
-                'gender':self.gender[idx],
-                'bags':self.bags[idx],
-                'body_colour':self.body_colour[idx],
-                'leg_colour':self.leg_colour[idx],
-                'foot_colour':self.foot_colour[idx],
-                'age':self.age[idx]                
-                })   
+            if self.dataset == 'CA_Market':
+                out.update({
+                    'head':self.head[idx],
+                    'head_colour':self.head_colour[idx],
+                    'body':self.body[idx],
+                    'body_type':self.body_type[idx],
+                    'leg':self.leg[idx],
+                    'foot':self.foot[idx],
+                    'gender':self.gender[idx],
+                    'bags':self.bags[idx],
+                    'body_colour':self.body_colour[idx],
+                    'leg_colour':self.leg_colour[idx],
+                    'foot_colour':self.foot_colour[idx],
+                    'age':self.age[idx]                
+                    })   
+            elif self.dataset == 'Market_attribute':
+                out.update({
+                    'age':self.age[idx],
+                    'bags':self.bags[idx],
+                    'leg_colour':self.leg_colour[idx],
+                    'body_colour':self.body_colour[idx],
+                    'leg_type':self.leg_type[idx],
+                    'leg':self.leg[idx],
+                    'sleeve':self.sleeve[idx],
+                    'hair':self.hair[idx],
+                    'hat':self.hat[idx],
+                    'gender':self.gender[idx],         
+                    }) 
+            elif self.dataset == 'Duke_attribute':
+                out.update({
+                    'bags':self.bags[idx],
+                    'boot':self.boot[idx],
+                    'gender':self.gender[idx],
+                    'hat':self.hat[idx],
+                    'foot_colour':self.foot_colour[idx],
+                    'body':self.body[idx],
+                    'leg_colour':self.leg_colour[idx],
+                    'body_colour':self.body_colour[idx], 
+                    }) 
         if self.need_id:
             out.update({'id':self.id[idx]})
             
         return out
-    
-#%%      
-class Market_Loader(Dataset):
-    '''
-    attr is a dictionary contains:
-        
-            'age',
-            'bags',
-            'leg_colour',
-            'body_colour',
-            'leg_type',
-            'leg',
-            'sleeve',
-            'hair',
-            'hat',
-            'gender'
-    resolution: the final dimentions of images (height,width) (256,128)
-    transform: images transformations
-    
-    
-    '''
-    def __init__(self,img_path,
-                 attr,
-                 resolution,
-                 indexes,
-                 transform=None,
-                 need_attr = True,
-                 need_collection=True,
-                 need_id = True,
-                 two_transforms = True,
-                 train_ids = None):
-        
-        # conditional variables:
-        self.need_attr = need_attr
-        self.need_collection = need_collection
-        self.need_id = need_id
-        self.two_transforms = two_transforms
-        
-        # images variables:
-        self.img_path = img_path
-        self.img_names = attr['img_names'][indexes]
-        self.resolution = resolution
-        
-        # id variables:
-        if self.need_id:
-            self.id = train_ids
-        
-        # attributes variables:
-        if self.need_collection:
-            # commons:
-            self.age = attr['age'][indexes]
-            self.gender = attr['gender'][indexes]
-            self.bags = attr['bags'][indexes]
-            self.leg_colour = attr['leg_colour'][indexes]
-            self.body_colour = attr['body_colour'][indexes]
-            self.leg = attr['leg'][indexes]
-            # not common
-            self.hair = attr['hair'][indexes]
-            self.hat = attr['hat'][indexes]
-            self.sleeve = attr['sleeve'][indexes]
-            self.leg_type = attr['leg_type'][indexes]
-            
-        if self.need_attr:
-            self.attr = attr['attributes'][indexes]           
-        
-        # transform variables:
-        if transform:
-            self.transform = transform
-        else:
-            self.transform = None
-            
-        self.normalizer = transforms.Compose([
-                    transforms.ToTensor(),
-                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-            
-    def __len__(self):
-        return len(self.img_names)
-    
-    def __getitem__(self,idx):
-        
-        img = get_image(os.path.join(self.img_path, self.img_names[idx]), self.resolution[1])
-        
-        if self.transform:
-            if self.two_transforms:
-                t = torch.empty(1).random_(2)
-                if t == 0:
-                    img = self.transform(img) 
-            else:
-                img = self.transform(img) 
-        
-        img = self.normalizer(img)
-        
-        out = {'img' : img}
-        
-        if self.need_attr:
-            out.update({'attr':self.attr[idx]})
-        if self.need_collection:
-            out.update({
-                'age':self.age[idx],
-                'bags':self.bags[idx],
-                'leg_colour':self.leg_colour[idx],
-                'body_colour':self.body_colour[idx],
-                'leg_type':self.leg_type[idx],
-                'leg':self.leg[idx],
-                'sleeve':self.sleeve[idx],
-                'hair':self.hair[idx],
-                'hat':self.hat[idx],
-                'gender':self.gender[idx],         
-                })   
-        if self.need_id:
-            out.update({'id':self.id[idx]})
-            
-        return out      
-    
+

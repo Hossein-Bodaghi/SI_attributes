@@ -49,7 +49,16 @@ def resampler(clss,img_names,Most_repetition=5):
                             img_names = np.append(img_names,img_names[k])
                             clss = torch.cat((clss , clss[torch.tensor([k])]),0)
                     w+=1
-    return (clss,img_names) 
+    return (clss,img_names)
+ 
+def validation_idx(test_idx, ratio=5):
+    idxs = []
+    i = 0
+    for idx in test_idx:
+        i += 1
+        if i % ratio == 0: idxs.append(idx)
+        else: pass
+    return idxs
 
 def attr_number(attr):
     attr_numbers = {}
