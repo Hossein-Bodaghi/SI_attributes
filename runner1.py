@@ -16,7 +16,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch
 import argparse
-
+# others
+import numpy as np
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('calculation is on:',device)
 torch.cuda.empty_cache()
@@ -30,7 +31,7 @@ def parse_args():
         '--dataset',
         type = str,
         help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]',
-        default='Duke_attribute')
+        default='Market_attribute')
     
     parser.add_argument(
         '--main_path',
@@ -74,6 +75,12 @@ def parse_args():
         type = str,
         help = 'categorized or vectorized',
         default='categorized')
+
+    parser.add_argument(
+        '--sampler_max',
+        type = int,
+        help = 'maxmimum iteration of images, if 1 nothing would change',
+        default = 2)
     
     parser.add_argument(
         '--model',
@@ -136,7 +143,9 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
       try: print(key , 'size is: \t {}'.format((value.size())))
       except TypeError:
         print(key)
-    
+
+    train_idx = torch.load('./attributes/train_idx_full.pth')
+    test_idx = torch.load('./attributes/test_idx_full.pth')    
 else:
     
     train_img_path = args.train_path
@@ -155,6 +164,10 @@ else:
                       need_parts=part_based,
                       need_attr=not part_based,
                       dataset = args.dataset)
+    
+    train_idx = np.arange(len(attr_train['img_names']))
+    test_idx = np.arange(len(attr_test['img_names']))
+    
     print('\n', 'train-set specifications') 
     for key , value in attr_train.items():       
         try: print(key , 'size is: \t {}'.format((value.size())))
@@ -168,25 +181,28 @@ else:
           print(key)
 
 #%%    
-# train_transform = transforms.Compose([
-#                             transforms.RandomRotation(degrees=10),
-#                             transforms.RandomHorizontalFlip(),
-#                             transforms.ColorJitter(saturation=[1,3])
-#                             ])
+''' Delivering data as attr dictionaries '''
 
-# train_data = CA_Loader(img_path=main_path,
-#                           attr=attr,
-#                           resolution=(256,128),
-#                           transform=train_transform,
-#                           indexes=train_idx,
-#                           need_attr =False,
-#                           need_collection=True,
-#                           need_id = False,
-#                           two_transforms = False)
+train_transform = transforms.Compose([
+                            transforms.RandomRotation(degrees=10),
+                            transforms.RandomHorizontalFlip(),
+                            transforms.ColorJitter(saturation=[1,3])
+                            ])
 
-# train_data.head , train_data.img_names = resampler(train_data.head ,
-#                                                      train_data.img_names,
-#                                                      Most_repetition = 5)
+
+train_data = CA_Loader(img_path=main_path,
+                          attr=attr,
+                          resolution=(256,128),
+                          transform=train_transform,
+                          indexes=train_idx,
+                          need_attr =False,
+                          need_collection=True,
+                          need_id = False,
+                          two_transforms = False)
+
+train_data.head , train_data.img_names = resampler(train_data.head ,
+                                                      train_data.img_names,
+                                                      Most_repetition = 5)
 
 # test_data = CA_Loader(img_path=main_path,
 #                           attr=attr,

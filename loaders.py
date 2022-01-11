@@ -10,9 +10,8 @@ that are define for person-attribute detection.
 this is Hossein Bodaghies thesis
 """
 
-
+import os
 import torch
-import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset 
 from torchvision import transforms
@@ -126,7 +125,7 @@ class CA_Loader(Dataset):
     
     def __getitem__(self,idx):
         
-        img = get_image(self.img_path+self.img_names[idx], self.resolution[0], self.resolution[1])
+        img = get_image(os.path.join(self.img_path, self.img_names[idx]), self.resolution[0], self.resolution[1])
         
         if self.transform:
             if self.two_transforms:
@@ -161,5 +160,117 @@ class CA_Loader(Dataset):
             out.update({'id':self.id[idx]})
             
         return out
+    
+#%%      
+class Market_Loader(Dataset):
+    '''
+    attr is a dictionary contains:
+        
+            'age',
+            'bags',
+            'leg_colour',
+            'body_colour',
+            'leg_type',
+            'leg',
+            'sleeve',
+            'hair',
+            'hat',
+            'gender'
+    resolution: the final dimentions of images (height,width) (256,128)
+    transform: images transformations
+    
+    
+    '''
+    def __init__(self,img_path,
+                 attr,
+                 resolution,
+                 indexes,
+                 transform=None,
+                 need_attr = True,
+                 need_collection=True,
+                 need_id = True,
+                 two_transforms = True,
+                 train_ids = None):
+        
+        # conditional variables:
+        self.need_attr = need_attr
+        self.need_collection = need_collection
+        self.need_id = need_id
+        self.two_transforms = two_transforms
+        
+        # images variables:
+        self.img_path = img_path
+        self.img_names = attr['img_names'][indexes]
+        self.resolution = resolution
+        
+        # id variables:
+        if self.need_id:
+            self.id = train_ids
+        
+        # attributes variables:
+        if self.need_collection:
+            # commons:
+            self.age = attr['age'][indexes]
+            self.gender = attr['gender'][indexes]
+            self.bags = attr['bags'][indexes]
+            self.leg_colour = attr['leg_colour'][indexes]
+            self.body_colour = attr['body_colour'][indexes]
+            self.leg = attr['leg'][indexes]
+            # not common
+            self.hair = attr['hair'][indexes]
+            self.hat = attr['hat'][indexes]
+            self.sleeve = attr['sleeve'][indexes]
+            self.leg_type = attr['leg_type'][indexes]
             
+        if self.need_attr:
+            self.attr = attr['attributes'][indexes]           
+        
+        # transform variables:
+        if transform:
+            self.transform = transform
+        else:
+            self.transform = None
+            
+        self.normalizer = transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+            
+    def __len__(self):
+        return len(self.img_names)
+    
+    def __getitem__(self,idx):
+        
+        img = get_image(os.path.join(self.img_path, self.img_names[idx]), self.resolution[1])
+        
+        if self.transform:
+            if self.two_transforms:
+                t = torch.empty(1).random_(2)
+                if t == 0:
+                    img = self.transform(img) 
+            else:
+                img = self.transform(img) 
+        
+        img = self.normalizer(img)
+        
+        out = {'img' : img}
+        
+        if self.need_attr:
+            out.update({'attr':self.attr[idx]})
+        if self.need_collection:
+            out.update({
+                'age':self.age[idx],
+                'bags':self.bags[idx],
+                'leg_colour':self.leg_colour[idx],
+                'body_colour':self.body_colour[idx],
+                'leg_type':self.leg_type[idx],
+                'leg':self.leg[idx],
+                'sleeve':self.sleeve[idx],
+                'hair':self.hair[idx],
+                'hat':self.hat[idx],
+                'gender':self.gender[idx],         
+                })   
+        if self.need_id:
+            out.update({'id':self.id[idx]})
+            
+        return out      
     
