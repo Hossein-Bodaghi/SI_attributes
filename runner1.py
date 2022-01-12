@@ -78,9 +78,10 @@ def parse_args():
     parser.add_argument(
         '--training_part',
         type = str,
-        help = 'all CA_Market: [age, head_colour, head, body body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
-        + 'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]',
-        default='age')
+        help = 'all, CA_Market: [age, head_colour, head, body body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
+        + 'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
+        +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',
+        default='bags')
 
     parser.add_argument(
         '--sampler_max',
@@ -93,6 +94,12 @@ def parse_args():
         type = int,
         help = 'training batch size',
         default = 32)
+
+    parser.add_argument(
+        '--weights',
+        type = str,
+        help = 'if None without weighting None, effective',
+        default='None')
     
     parser.add_argument(
         '--model',
@@ -226,7 +233,17 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
                               need_collection = part_based,
                               need_id = False,
                               two_transforms = True) 
-
+    
+    if args.training_part == 'all':      
+        weights = attr_weight(attr=attr, effective=args.weights, device=device, beta=0.99)
+    else:
+        weights = {args.training_part:  
+                   attr_weight(attr=attr,
+                               effective=args.weights,
+                               device=device, beta=0.99)[args.training_part]}
+        train_data.__dict__[args.training_part] , train_data.__dict__['img_names'] = resampler(train_data.__dict__[args.training_part] ,
+                                                              train_data.__dict__['img_names'],
+                                                              Most_repetition = args.sampler_max)  
 else:
     train_data = CA_Loader(img_path=train_img_path,
                               attr=attr_train,
@@ -249,12 +266,18 @@ else:
                               two_transforms = True) 
     
   
-if args.training_part == 'all':
-    pass
-else:
-    train_data.__dict__[args.training_part] , train_data.__dict__['img_names'] = resampler(train_data.__dict__[args.training_part] ,
-                                                          train_data.__dict__['img_names'],
-                                                          Most_repetition = args.sampler_max)  
+    if args.training_part == 'all':      
+        weights = attr_weight(attr=attr_train, effective=args.weights, device=device, beta=0.99)
+    else:
+        weights = {args.training_part:  
+                   attr_weight(attr=attr_train,
+                               effective=args.weights,
+                               device=device, beta=0.99)[args.training_part]}
+        train_data.__dict__[args.training_part] , train_data.__dict__['img_names'] = resampler(train_data.__dict__[args.training_part] ,
+                                                              train_data.__dict__['img_names'],
+                                                              Most_repetition = args.sampler_max) 
+        
+part_loss = part_data_delivery(weights, dataset = args.dataset, device = device)
 
 batch_size = 32
 train_loader = DataLoader(train_data,batch_size=batch_size,shuffle=True)
