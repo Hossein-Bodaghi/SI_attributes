@@ -807,7 +807,7 @@ class mb_transformer_build_model(nn.Module):
         torch.save(self.model.state_dict(), saving_path)
         print('baseline model save to {}'.format(saving_path))
 #%%
-                                        
+               
 class CD_builder(nn.Module):
     
     def __init__(self,
@@ -911,16 +911,19 @@ class CD_builder(nn.Module):
     def save_baseline(self, saving_path):
         torch.save(self.model.state_dict(), saving_path)
         print('baseline model save to {}'.format(saving_path))   
-            
-        
-class mb12_build_model(nn.Module):
+#%%            
+blocks = [OSBlock, OSBlock, OSBlock]
+layers = [2, 2, 2]
+channels = [16, 64, 384, 512] 
+                                 
+class mb12_CA_build_model(nn.Module):
     
     def __init__(self,
                  model,
                  main_cov_size = 512,
                  attr_dim = 128,
                  dropout_p = 0.3,
-                 sep_conv_size = None,
+                 sep_conv_size = 64,
                  feature_selection = None):
         
         super().__init__()

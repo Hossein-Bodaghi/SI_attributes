@@ -5,10 +5,11 @@ Created on Tue Jan 11 20:07:29 2022
 
 @author: hossein
 """
+#%%
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx
 from trainings import dict_training_multi_branch
-from models import mb_transformer_build_model, mb_os_build_model
+from models import mb12_CA_build_model
 from delivery import data_delivery
 from loaders import CA_Loader
 # torch requirements
@@ -102,9 +103,9 @@ def parse_args():
         default='None')
     
     parser.add_argument(
-        '--model',
+        '--baseline',
         type = str,
-        help = 'it should be one the [osnet, sbs_s50, mgn_r50_ibn]',
+        help = 'it should be one the [osnet, lu_person]',
         default='osnet')
     
     parser.add_argument(
@@ -284,44 +285,53 @@ train_loader = DataLoader(train_data,batch_size=batch_size,shuffle=True)
 test_loader = DataLoader(test_data,batch_size=100,shuffle=False)
 
 #%%
-# torch.cuda.empty_cache()
-# from torchreid import models
-# from torchreid import utils
+torch.cuda.empty_cache()
 
-# model = models.build_model(
-#     name='osnet_x1_0',
-#     num_classes=751,
-#     loss='softmax',
-#     pretrained=False
-# )
+if args.baseline == 'osnet':
+    
+    from torchreid import models
+    from torchreid import utils
+    
+    model = models.build_model(
+        name='osnet_x1_0',
+        num_classes=751,
+        loss='softmax',
+        pretrained=False
+    )
+    
+    if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
+        weight_path = './checkpoints/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
+        utils.load_pretrained_weights(model, weight_path)
+    else:
+        raise Exception("The pretrained osnet-baseline for Duke is not downloaded")
+else:
+    raise Exception("The SI feature_extractor for lu_person is not ready")
+    
+#### freezing the network
+params = model.parameters()
+for param in params:
+    param.requires_grad = False
+    
+if args.dataset == 'CA_Market':
+    attr_net = mb12_CA_build_model(
+                     model,
+                     main_cov_size = 512,
+                     attr_dim = 128,
+                     dropout_p = 0.3,
+                     sep_conv_size = 64,
+                     feature_selection = None)
+else:
+    raise Exception("multi-branch model is available only for CA_Market dataset") 
 
-# weight_path = './checkpoints/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
-# utils.load_pretrained_weights(model, weight_path)
-# # sep_fc = True and sep_clf = False is not possible
-# attr_net = mb_os_build_model(model = model,
-#                  main_cov_size = 512,
-#                  attr_dim = 64,
-#                  dropout_p = 0.3,
-#                  sep_conv_size = 128,
-#                  sep_fc = False,
-#                  sep_clf = True)
 
-# attr_net = attr_net.to(device)
+attr_net = attr_net.to(device)
+baseline_size = get_n_params(model)
+mb_size = get_n_params(attr_net)
+print('baseline has {} parameters'.format(baseline_size), 
+      '\t', 'multi-branch net has {} parameters'.format(mb_size), '\n'
+      'multi-branch is {:.2f} times biger than baseline'.format(mb_size/baseline_size))
 
-# i = 0
-# for child in attr_net.children():
-#     i += 1
-#     # print(i)
-#     # print(child)
-#     if i == 10:
-#     #     # print(child)
-#         a = get_n_params(child)
-        
-# get_n_params(attr_net)
-# #%%
-# weights = {'gender':torch.rand(1, device=device),'leg' : torch.rand(3, device=device)}
-# #%%
-# part_loss = part_data_delivery(weights, dataset='CA_Market')
+#%%
 
 # params = attr_net.parameters()
 
