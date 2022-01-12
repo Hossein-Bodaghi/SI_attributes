@@ -88,7 +88,7 @@ def parse_args():
         '--sampler_max',
         type = int,
         help = 'maxmimum iteration of images, if 1 nothing would change',
-        default = 2)
+        default = 1)
 
     parser.add_argument(
         '--batch_size',
@@ -107,36 +107,12 @@ def parse_args():
         type = str,
         help = 'it should be one the [osnet, lu_person]',
         default='osnet')
-    
+
     parser.add_argument(
-        '--topN', type = int, default=20, help = 'retrieve topN items')
-    
-    parser.add_argument(
-        '--source_clothes',
-        help = 'path of source images which are shops items',
-        default = '/home/hossein/deep-person-reid/datasets/market1501/Market-1501-v15.09.15/bounding_box_test')
-    
-    parser.add_argument(
-        '--checkpoint',
-        type=str,
-        default='/home/hossein/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth',
-        help='the checkpoint network to resume from')
-    
-    parser.add_argument(
-        '--use_ready_features', action='store_true')
-    parser.set_defaults(use_ready_features=True)
-    
-    parser.add_argument(
-        '--all_features',
-        type=str,
-        default='/home/hossein/anaconda3/envs/torchreid/deep-person-reid/my_osnet/demo/features/market_gallery_osnet.npy',
-        help='features of whole data that we want to retrieve')
-    
-    parser.add_argument(
-        '--save_features',
-        type=str,
-        default='/home/hossein/anaconda3/envs/torchreid/deep-person-reid/my_osnet/demo/features',
-        help='features of whole data that we want to retrieve')
+        '--trained_multi_branch',
+        type = str,
+        help = 'path of trained attr_net multi-branch network',
+        default=None)
 
     args = parser.parse_args()
     return args
@@ -316,14 +292,19 @@ if args.dataset == 'CA_Market':
     attr_net = mb12_CA_build_model(
                      model,
                      main_cov_size = 512,
-                     attr_dim = 128,
+                     attr_dim = 64,
                      dropout_p = 0.3,
                      sep_conv_size = 64,
                      feature_selection = None)
 else:
     raise Exception("multi-branch model is available only for CA_Market dataset") 
 
-
+if args.trained_multi_branch is not None:
+    trained_net = torch.load(args.trained_multi_branch)
+    attr_net.load_state_dict(trained_net.state_dict())
+else:
+    print('\n', 'there is no trained branches', '\n')
+    
 attr_net = attr_net.to(device)
 baseline_size = get_n_params(model)
 mb_size = get_n_params(attr_net)
@@ -333,34 +314,33 @@ print('baseline has {} parameters'.format(baseline_size),
 
 #%%
 
-# params = attr_net.parameters()
+params = attr_net.parameters()
 
-# lr = 3.5e-4
-# optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
-# scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 17], gamma=0.1)
+lr = 3.5e-4
+optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
+scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 17], gamma=0.1)
 
-# #%%
-# save_path = './results/'
-# dict_training_multi_branch(num_epoch = 30,
-#                       attr_net = attr_net,
-#                       train_loader = train_loader,
-#                       test_loader = test_loader,
-#                       optimizer = optimizer,
-#                       scheduler = scheduler,
-#                       save_path = save_path,  
-#                       part_loss = part_loss,
-#                       device = device,
-#                       version = 'sif_convt_128_flf_64_clft_CA',
-#                       resume=False,
-#                       loss_train = None,
-#                       loss_test=None,
-#                       train_attr_F1=None,
-#                       test_attr_F1=None,
-#                       train_attr_acc=None,
-#                       test_attr_acc=None,  
-#                       stoped_epoch=None)
-
-
+#%%
+save_path = './results/'
+dict_training_multi_branch(num_epoch = 30,
+                      attr_net = attr_net,
+                      train_loader = train_loader,
+                      test_loader = test_loader,
+                      optimizer = optimizer,
+                      scheduler = scheduler,
+                      save_path = save_path,  
+                      part_loss = part_loss,
+                      device = device,
+                      version = 'sif_convt_128_flf_64_clft_CA',
+                      categorical = args.training_strategy,
+                      resume=False,
+                      loss_train = None,
+                      loss_test=None,
+                      train_attr_F1=None,
+                      test_attr_F1=None,
+                      train_attr_acc=None,
+                      test_attr_acc=None,  
+                      stoped_epoch=None)
 
 
 

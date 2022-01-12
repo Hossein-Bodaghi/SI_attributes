@@ -929,6 +929,8 @@ class mb12_CA_build_model(nn.Module):
         super().__init__()
         self.feat_indices = feature_selection
         self.feature_dim = main_cov_size
+        if self.feature_dim != 384 and self.feature_dim != 512:
+            raise Exception('main_cov_size should be 384 or 512')
         self.dropout_p = dropout_p 
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         self.softmax = nn.Softmax(dim=1)
@@ -1069,9 +1071,6 @@ class mb12_CA_build_model(nn.Module):
         self.gender_clf = nn.Linear(self.attr_dim, 1)
     
     def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
-        if fc_dims is None or fc_dims < 0:
-            self.feature_dim = input_dim
-            return None
     
         if isinstance(fc_dims, int):
             fc_dims = [fc_dims]
@@ -1085,13 +1084,11 @@ class mb12_CA_build_model(nn.Module):
                 layers.append(nn.Dropout(p=dropout_p))
             input_dim = dim
     
-        self.feature_dim = fc_dims[-1]
-    
         return nn.Sequential(*layers)
 
     def get_feature(self, x, get_attr=True, get_feature=True, get_collection=False):
         
-        out_conv4 = self.out_layers_extractor(x, 'out_conv4')
+        out_conv4 = self.out_layers_extractor(x, 'out_conv3')
         # The path for multi-branches for attributes 
         out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf, need_feature=True)          
         out_body = self.attr_branch(out_conv4, self.conv_body, self.body_fc, self.body_clf, need_feature=True)     
@@ -1141,7 +1138,12 @@ class mb12_CA_build_model(nn.Module):
         return out 
     
     def forward(self, x, need_feature=False):
-        out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
+        if self.feature_dim == 512:
+            out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
+        elif self.feature_dim == 384:
+            out_conv4 = self.out_layers_extractor(x, 'out_conv3')  
+        else:
+            raise Exception('main_cov_size should be 384 or 512')
         out_attributes = {}
         # head
         out_head = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[0]),
@@ -1192,7 +1194,7 @@ class mb12_CA_build_model(nn.Module):
         out_bags = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[9]),
                                                         fc_layer = self.bag_fc,
                                                         clf_layer = self.bag_clf,
-                                                        conv_layer = self.conv_bags, need_feature = need_feature)[0]
+                                                        conv_layer = self.conv_bags, need_feature = need_feature)
         # general
         out_age = self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[10]),
                                                         fc_layer = self.age_fc,
