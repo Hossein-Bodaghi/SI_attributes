@@ -7,7 +7,7 @@ Created on Tue Jan 11 20:07:29 2022
 """
 #%%
 # repository imports
-from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx
+from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT
 from trainings import dict_training_multi_branch
 from models import mb12_CA_build_model
 from delivery import data_delivery
@@ -79,10 +79,10 @@ def parse_args():
     parser.add_argument(
         '--training_part',
         type = str,
-        help = 'all, CA_Market: [age, head_colour, head, body body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
+        help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
         + 'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
         +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',
-        default='bags')
+        default='age,body,body_type,head,leg,foot,gender,bags')
 
     parser.add_argument(
         '--sampler_max',
@@ -181,13 +181,15 @@ test_idx = validation_idx(test_idx)
 #%%    
 ''' Delivering data as attr dictionaries '''
 
-train_transform = transforms.Compose([
+train_transform =  transforms.Compose([
                             transforms.RandomRotation(degrees=10),
                             transforms.RandomHorizontalFlip(),
-                            transforms.ColorJitter(saturation=[1,3])
+                            transforms.ColorJitter(saturation=[0.25,1.25], brightness = (0.8, 1), contrast = (0.8, 1.2)),
+                            transforms.RandomPerspective(distortion_scale=0.2, p = 0.8),
+                            LGT(probability=0.8, sl=0.02, sh=0.8, r1=0.7)
                             ])
+#torchvision.transforms.RandomPerspective(distortion_scale, p)
 
-    
 if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
         
     train_data = CA_Loader(img_path=main_path,
@@ -211,16 +213,18 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
                               need_id = False,
                               two_transforms = True) 
     
-    if args.training_part == 'all':      
+
+
+    if args.training_part == 'all':
         weights = attr_weight(attr=attr, effective=args.weights, device=device, beta=0.99)
     else:
-        weights = {args.training_part:  
-                   attr_weight(attr=attr,
-                               effective=args.weights,
-                               device=device, beta=0.99)[args.training_part]}
-        train_data.__dict__[args.training_part] , train_data.__dict__['img_names'] = resampler(train_data.__dict__[args.training_part] ,
-                                                              train_data.__dict__['img_names'],
-                                                              Most_repetition = args.sampler_max)  
+    
+        weights = attr_weight(attr={key: attr[key] for key in args.training_part.split(',')},
+         effective=args.weights, device=device, beta=0.99)
+        
+#         train_data.__dict__[args.training_part] , train_data.__dict__['img_names'] = resampler(train_data.__dict__[args.training_part] ,
+#                                                               train_data.__dict__['img_names'],
+#                                                               Most_repetition = args.sampler_max)  
 else:
     train_data = CA_Loader(img_path=train_img_path,
                               attr=attr_train,
@@ -231,7 +235,7 @@ else:
                               need_attr = not part_based,
                               need_collection = part_based,
                               need_id = False,
-                              two_transforms = True)
+                              two_transforms = False)
     test_data = CA_Loader(img_path=test_img_path,
                               attr=attr_test,
                               resolution=(256, 128),
@@ -242,14 +246,11 @@ else:
                               need_id = False,
                               two_transforms = True) 
     
-  
     if args.training_part == 'all':      
         weights = attr_weight(attr=attr_train, effective=args.weights, device=device, beta=0.99)
     else:
-        weights = {args.training_part:  
-                   attr_weight(attr=attr_train,
-                               effective=args.weights,
-                               device=device, beta=0.99)[args.training_part]}
+        weights = attr_weight(attr={key: attr[key] for key in args.training_part.split(',')},
+         effective=args.weights, device=device, beta=0.99)
         train_data.__dict__[args.training_part] , train_data.__dict__['img_names'] = resampler(train_data.__dict__[args.training_part] ,
                                                               train_data.__dict__['img_names'],
                                                               Most_repetition = args.sampler_max) 
@@ -291,7 +292,7 @@ for param in params:
 if args.dataset == 'CA_Market':
     attr_net = mb12_CA_build_model(
                      model,
-                     main_cov_size = 512,
+                     main_cov_size = 384,
                      attr_dim = 64,
                      dropout_p = 0.3,
                      sep_conv_size = 64,
@@ -301,7 +302,7 @@ else:
 
 if args.trained_multi_branch is not None:
     trained_net = torch.load(args.trained_multi_branch)
-    attr_net.load_state_dict(trained_net.state_dict())
+    attr_net.load_state_dict(trained_net)
 else:
     print('\n', 'there is no trained branches', '\n')
     
@@ -331,7 +332,7 @@ dict_training_multi_branch(num_epoch = 30,
                       save_path = save_path,  
                       part_loss = part_loss,
                       device = device,
-                      version = 'sif_convt_128_flf_64_clft_CA',
+                      version = 'mb_conv3_objects_nowei_CA',
                       categorical = args.training_strategy,
                       resume=False,
                       loss_train = None,
