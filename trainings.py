@@ -14,6 +14,8 @@ import numpy as np
 import torch.nn as nn
 from metrics import tensor_metrics
 import os
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #%%
@@ -233,6 +235,9 @@ def dict_training_multi_branch(num_epoch,
         start_epoch = stoped_epoch + 1
     else:
         start_epoch = 1
+    
+    tb = SummaryWriter()
+    
     for epoch in range(start_epoch, num_epoch + 1):
 
         # torch.cuda.empty_cache()
@@ -248,43 +253,49 @@ def dict_training_multi_branch(num_epoch,
         ft_test = []
         acc_train = []
         acc_test = []
+        with tqdm(train_loader, unit="batch") as tepoch:
+            for idx, data in enumerate(tepoch):
+                for key, _ in data.items():
+                    data[key] = data[key].to(device)
+                # forward step
+                optimizer.zero_grad()
+                out_data = attr_net.forward(data['img'])
 
-        for idx, data in enumerate(train_loader):
+                # compute losses and evaluation metrics:
+                attr_loss, loss_total = CA_part_loss_calculator(out_data = out_data,
+                                                                data = data,
+                                                                part_loss = part_loss,
+                                                                categorical = True)
 
-            for key, _ in data.items():
-                data[key] = data[key].to(device)
-            # forward step
-            optimizer.zero_grad()
-            out_data = attr_net.forward(data['img'])
+                loss_parts_train += attr_loss
 
-            # compute losses and evaluation metrics:
-            attr_loss, loss_total = CA_part_loss_calculator(out_data = out_data,
-                                                            data = data,
-                                                            part_loss = part_loss,
-                                                            categorical = True)
+                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)
+                # evaluation    
+                train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
+                # append results
+                ft_train.append(train_attr_metrics[-2])
+                acc_train.append(train_attr_metrics[-3])
+                loss_e.append(loss_total.item())
+                
+                # backward step
+                loss_total.backward()
+                # optimization step
+                optimizer.step()
+                
+                # print log
+                tb.add_scalar('Loss/train', loss_total.item(), idx)
+                tb.add_scalar('Accuracy/train', train_attr_metrics[-3], idx)
+                tb.add_scalar('F1/train', train_attr_metrics[-2], idx)
 
-            loss_parts_train += attr_loss
+                if idx % 1 == 0:
+                    tepoch.set_postfix(loss=loss_total.item(),F1=100.*train_attr_metrics[-2] , Acc=100.*train_attr_metrics[-3])
+                    """
+                    print('\nTrain Epoch: {} [{}/{} , lr {}] \t Loss: {:.6f} \nattr_metrics: F1_attr: {:.3f} acc_attr{:.3f}'.format(
+                        epoch, idx , len(train_loader),
+                        optimizer.param_groups[0]['lr'],
+                        loss_total.item(),ft_train[-1], acc_train[-1]))
+                    """
 
-            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)
-            # evaluation    
-            train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
-            # append results
-            ft_train.append(train_attr_metrics[-2])
-            acc_train.append(train_attr_metrics[-3])
-            loss_e.append(loss_total.item())
-            
-            # backward step
-            loss_total.backward()
-            # optimization step
-            optimizer.step()
-            
-            # print log
-            if idx % 1 == 0:
-                print('\nTrain Epoch: {} [{}/{} , lr {}] \t Loss: {:.6f} \nattr_metrics: F1_attr: {:.3f} acc_attr{:.3f}'.format(
-                    epoch, idx , len(train_loader),
-                     optimizer.param_groups[0]['lr'],
-                      loss_total.item(),ft_train[-1], acc_train[-1]))
-       
         train_loss.append(np.mean(loss_e))
         F1_train.append(np.mean(ft_train))
         Acc_train.append(np.mean(acc_train))
@@ -328,7 +339,9 @@ def dict_training_multi_branch(num_epoch,
         #create a matrix of loss in each epoch for each part
         attr_loss_test[epoch-1, :] = loss_parts_test
 
-        print('Epoch: {}\ntrain loss: {:.6f}\ntest loss: {:.6f}\n\nF1 train: {:.4f}\nF1 test: {:.4f}\n\nacc_train: {:.4f}\nacc_test: {:.4f} '.format(
+        tb.add_scalar("Loss", test_loss[-1], epoch)
+
+        print('Epoch: {}\ntrain loss: {:.6f}\ntest loss: {:.6f}\n\nF1 train: {:.4f}\nF1 test: {:.4f}\n\nacc_train: {:.4f}\nacc_test: {:.4f}\n'.format(
                     epoch,train_loss[-1],test_loss[-1],F1_train[-1],F1_test[-1],Acc_train[-1],Acc_test[-1]))
 
         scheduler.step()
@@ -367,6 +380,6 @@ def dict_training_multi_branch(num_epoch,
         if F1_test[-1] > f1_best: 
             f1_best = F1_test[-1]
             if d ==0:
-                print('test f1 improved')
+                print('test f1 improved','\n')
             else:
-                print('\n', 'test f1 improved')
+                print('test f1 improved','\n')
