@@ -13,6 +13,7 @@ from torch.nn import init
 import math
 from functools import partial
 from torch.nn import functional as F
+from math import sqrt
 
 '''
 the origin code:
@@ -348,3 +349,8 @@ class CoAtNet(nn.Module):
         y=y.reshape(B,self.out_chs[4],int(sqrt(N)),int(sqrt(N)))
         print('size of reshape: ', y.shape, '\n')
         return y
+x=torch.randn(1,3,224,224)
+coatnet=CoAtNet(3,224)
+y=coatnet(x)
+print(y.shape)
+    

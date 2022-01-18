@@ -42,8 +42,10 @@ def parse_args():
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='body_colour')
     parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 3)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
-    parser.add_argument('--weights',type = str,help = 'loss_weights if None without weighting None, effective',default='None')
-    parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet, lu_person]',default='osnet')
+    parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting None, effective',default='None')
+    parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
+    parser.add_argument('--baseline_path',type = str,help = 'path of weights for pre-trained networks ./osnet_x1_0_market.pth, osnet_ain_x1_0_msmt17.pth',
+                        default='./checkpoints/osnet_ain_x1_0_msmt17.pth')
     parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network',default=None)
     args = parser.parse_args()
     return args
@@ -136,11 +138,11 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
 
 
     if args.training_part == 'all':
-        weights = attr_weight(attr=attr, effective=args.weights, device=device, beta=0.99)
+        weights = attr_weight(attr=attr, effective=args.loss_weights, device=device, beta=0.99)
     else:
     
         weights = attr_weight(attr={key: attr[key] for key in args.training_part.split(',')},
-        effective = args.weights, device=device, beta=0.99)
+        effective = args.loss_weights, device=device, beta=0.99)
         
         train_data.__dict__ = resampler(train_data.__dict__, args.training_part, args.sampler_max)
         
@@ -164,12 +166,12 @@ else:
                               need_collection = part_based,
                               need_id = False,
                               two_transforms = True) 
-    body
+    
     if args.training_part == 'all':      
-        weights = attr_weight(attr=attr_train, effective=args.weights, device=device, beta=0.99)
+        weights = attr_weight(attr=attr_train, effective=args.loss_weights, device=device, beta=0.99)
     else:
         weights = attr_weight(attr={key: attr[key] for key in args.training_part.split(',')},
-        effective=args.weights, device=device, beta=0.99)
+        effective=args.loss_weights, device=device, beta=0.99)
         train_data.__dict__ = resampler(train_data.__dict__, args.training_part, args.sampler_max)
         
 part_loss = part_data_delivery(weights, dataset = args.dataset, device = device)
@@ -181,21 +183,20 @@ test_loader = DataLoader(test_data,batch_size=100,shuffle=False)
 #%%
 torch.cuda.empty_cache()
 
-if args.baseline == 'osnet':
+if args.baseline[:5] == 'osnet':
     
     from torchreid import models
     from torchreid import utils
     
     model = models.build_model(
-        name='osnet_x1_0',
+        name=args.baseline,
         num_classes=751,
         loss='softmax',
         pretrained=False
     )
     
     if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
-        weight_path = './checkpoints/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
-        utils.load_pretrained_weights(model, weight_path)
+        utils.load_pretrained_weights(model, args.baseline_path)
     else:
         raise Exception("The pretrained osnet-baseline for Duke is not downloaded")
 else:
