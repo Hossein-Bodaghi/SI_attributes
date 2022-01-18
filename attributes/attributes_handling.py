@@ -219,3 +219,186 @@ np.save('./CA_Market_with_id.npy',
         attr_with_id)
 np.save('./Market_attribute_with_id.npy',
         market_attr_with_id)
+
+
+#%% CA-Duke new attributes
+
+
+"""
+old attributes : ["male/female",
+
+    "hairless","short hair","longhair(straight)","knot","unvisible(hair)",
+    "burnette","blonde","gray/white","black",
+    'cap',"snowcap","hoodiecap","no cap", "unvisible(cap)",
+    "c_white","c_purple","c_pink","c_blue","c_green","c_red","c_brown","c_yellow","c_gray","c_black",  
+    "T-shirt/shirt","jacket/sweatshirt","overcoat","hoodie",
+    "b_white","b_purple","b_pink","b_blue","b_green","b_red","b_brown","b_yellow","b_gray","b_black",  
+    "backpack","bag/handbag",'no bags',
+    "umbrella(open)","umbrella(closed)","no umbrella",
+    "beard","shaved","hidden",
+    "pants","shorts","skirt","unvisible",
+    "l_white","l_purple","l_pink","l_blue","l_green","l_red","l_brown","l_yellow","l_gray","l_black",
+    'formal shoes',"sneakers","high boots",'hidden',
+    "f_white","f_purple","f_pink","f_blue","f_green","f_red","f_brown","f_yellow","f_gray","f_black",
+    "sunglasses","headphone","gloves","scarf","tie",
+    "front/back",
+    "white", "black", "unkown"
+    ]
+new attributes : [0'gender', 1'hairless', 2"short hair",3"longhair(straight)",4"knot",5"unvisible(hair)",
+                  6"burnette",7"blonde", 8"black",9'no-color',
+                  10'cap',11"snowcap",12"hoodiecap",13"no cap", 14"unvisible(cap)",
+                  15"c_white",16"c_blue",17"c_green",18"c_red",19"c_brown",20"c_yellow",21"c_gray",22"c_black",23'no-color', 
+                  24"T-shirt/shirt",25"jacket/sweatshirt",26"overcoat",27"hoodie",
+                  28"b_white",29"b_purple",30"b_pink",31"b_blue",32"b_green",33"b_red",34"b_brown",35"b_yellow",36"b_gray",37"b_black", 
+                  38"backpack",39"bag/handbag",40'no bags',
+                  41"umbrella(open)",42"umbrella(closed)",43"no umbrella",
+                  44"beard",45"shaved",46"hidden",
+                  47"pants",48"shorts",49"skirt",50"unvisible",
+                  51"l_white",52"l_blue",53"l_green",54"l_red",55"l_brown",56"l_yellow",57"l_gray",58"l_black",59'no-color',
+                  60'formal shoes',61"sneakers",62"high boots",63'hidden',
+                  64"f_white",65"f_colorful",66"f_brown",67"f_gray",68"f_black",69'no-color',
+                  70"sunglasses",71"headphone",72"gloves",73"scarf",74"tie",
+                  75"front/back",
+                  76"white", 77"black", 78"unkown"
+                  ]                  
+"""
+
+import numpy as np
+import os
+import pickle
+
+main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/DUKMTMC/Dataset/dukemtmc/DukeMTMC-reID/DukeMTMC-reID/bounding_box_train/'
+
+img_names = os.listdir(main_path)
+img_names.sort()
+
+id_ = []
+for name in img_names:
+    b = name.split('_')
+    id_.append(int(b[0]))
+
+all_attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/trainlabel_final.pkl'
+attributes_dict = np.load(all_attr_path,allow_pickle=True)
+
+attributes = np.array([attributes_dict[pth] for pth in attributes_dict])
+    
+#attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/final_attr_org.npy'
+#ttributes =  np.load(attr_path)
+atr_new = np.zeros((np.shape(attributes)[0], 79), dtype=int)
+
+atr_new[:, :7] = attributes[:, :7] # ['gender','hairless', "short hair","longhair(straight)","knot","unvisible(hair)","burnette"]
+
+#handle hair color, mix blonde and white/gray to each other, named blonde
+for i in range(np.shape(attributes)[0]):
+    for j in range(7,9):
+        if attributes[i, j] == 1:
+            atr_new[i, 7] = 1
+
+atr_new[:, 8] = attributes[:, 9]  #black hair
+
+# add no-color atrribute for hair when it's invisible
+atr_new[:, 9] = attributes[:, 5] 
+
+atr_new[:, 10:16] = attributes[:, 10:16] # ['gender','hairless', "short hair","longhair(straight)","knot","unvisible(hair)","burnette"]
+atr_new[:, 16:18] = attributes[:, 18:20] #blue, green
+
+#add pink, purple and red to red in cap
+for i in range(np.shape(attributes)[0]):
+    for j in (16,17,20):
+        if attributes[i, j] == 1:
+            atr_new[i, 18] = 1
+            
+atr_new[:, 19:23] = attributes[:, 21:25] #[brown, yellow, gray, black] - body
+
+#add  no-color in cap part
+for i in range(np.shape(attributes)[0]):
+    for j in range(13,15):
+        if attributes[i, j] == 1:
+            atr_new[i, 23] = 1
+
+# from Tshirt/shirt to l-white are the same
+atr_new[:, 24:52] = attributes[:, 25:53] 
+atr_new[:, 52:54] = attributes[:, 55:57] #blue, green - leg
+
+#add pink, purple and red to red in cap
+for i in range(np.shape(attributes)[0]):
+    for j in (53, 54, 57):
+        if attributes[i, j] == 1:
+            atr_new[i, 54] = 1
+            
+atr_new[:, 55:59] = attributes[:, 58:62] #[brown, yellow, gray, black]
+#add no color in leg
+atr_new[:, 59] = attributes[:, 51]
+
+atr_new[:, 60:65] = attributes[:, 62:67] #[shoes, f-white] 
+
+#change purple, pink, blue, green, red and yellow to colorful
+for i in range(np.shape(attributes)[0]):
+    for j in (67,68,69,70,71,73):
+        if attributes[i, j] == 1:
+            atr_new[i, 65] = 1
+            
+            
+atr_new[:, 66] = attributes[:, 72] #brown
+atr_new[:, 67:69] = attributes[:, 74:76] #gray, black
+
+#no color in hidden shoes
+atr_new[:, 69] = attributes[:, 65] 
+
+#accessories and viewpoint, race
+atr_new[:, 70:79] = attributes[:, 76:85] 
+
+sum_attr = np.sum(attributes, axis=0)
+sum_attr_sum = np.sum(atr_new, axis=0)
+
+
+attr_names_old =["male/female","hairless","short hair","longhair(straight)","knot","unvisible(hair)",
+                 "burnette","blonde","gray/white","black",
+                 'cap',"snowcap","hoodiecap","no cap", "unvisible(cap)",
+                 "c_white","c_purple","c_pink","c_blue","c_green","c_red","c_brown","c_yellow","c_gray","c_black",  
+                 "T-shirt/shirt","jacket/sweatshirt","overcoat","hoodie",
+                 "b_white","b_purple","b_pink","b_blue","b_green","b_red","b_brown","b_yellow","b_gray","b_black",  
+                 "backpack","bag/handbag",'no bags',
+                 "umbrella(open)","umbrella(closed)","no umbrella",
+                 "beard","shaved","hidden",
+                 "pants","shorts","skirt","unvisible",
+                 "l_white","l_purple","l_pink","l_blue","l_green","l_red","l_brown","l_yellow","l_gray","l_black",
+                 'formal shoes',"sneakers","high boots",'hidden',
+                 "f_white","f_purple","f_pink","f_blue","f_green","f_red","f_brown","f_yellow","f_gray","f_black",
+                 "sunglasses","headphone","gloves","scarf","tie",
+                 "front/back",
+                 "white", "black", "unkown"
+                 ]
+attr_names_new = ['gender','hairless',"short hair","longhair(straight)","knot","unvisible(hair)",
+                  "burnette","blonde", "black",'no-color',
+                  'cap',"snowcap","hoodiecap","no cap","unvisible(cap)",
+                  "c_white","c_blue","c_green","c_red","c_brown","c_yellow","c_gray","c_black",'no-color', 
+                  "T-shirt/shirt","jacket/sweatshirt","overcoat","hoodie",
+                  "b_white","b_purple","b_pink","b_blue","b_green","b_red","b_brown","b_yellow","b_gray","b_black", 
+                  "backpack","bag/handbag",'no bags',
+                  "umbrella(open)","umbrella(closed)","no umbrella",
+                  "beard","shaved","hidden",
+                  "pants","shorts","skirt","unvisible",
+                  "l_white","l_blue","l_green","l_red","l_brown","l_yellow","l_gray","l_black",'no-color',
+                  'formal shoes',"sneakers","high boots",'hidden',
+                  "f_white","f_colorful","f_brown","f_gray","f_black",'no-color',
+                  "sunglasses","headphone","gloves","scarf","tie",
+                  "front/back",
+                  "white", "black", "unkown"
+                  ]
+print('new attribtes \n')
+for i in range(len(attr_names_new)):
+    print(i , ')', attr_names_new[i], '-->', int(sum_attr_sum[i]))
+    
+
+
+print('\n the old attributes \n')
+for i in range(len(attr_names_old)):
+    print(i , ')', attr_names_old[i], '-->', int(sum_attr[i]))
+    
+#%%
+idd = np.reshape(np.array(id_), (len(id_),1))
+attr_with_id = np.append(atr_new, idd, axis=1)
+np.save('/home/taarlab/SI_attributes/attributes/CA_Duke_with_id.npy',attr_with_id)
+
+

@@ -23,14 +23,15 @@ def market_duke_attr(path, key = 'market_attribute'):
         10)down-gray 11)down-green 12)down-pink 13)down-purple 14)down-white 
         15)down-yellow 16)up-black 17)up-blue 18)up-green 19)up-gray 
         20)up-purple 21)up-red 22)up-white 23)up-yellow 24)lower-body type 
-        25)lower-body length 26)slleve-length 27)hair-length 28)hat 29)gender 
+        25)lower-body length 26)sleeve-length 27)hair-length 28)hat 29)gender 
         30)ID
     
     for DukeMTMC:
-        0) gender 1)upper-body_length 2)boots 3)hat 4)backpack 5)bag 
-        6)hand_bag 7)age 8)upblack 9)upwhite 10)upred 11)uppurple 12)upgray 
-        13)upblue 14)upgreen 15)upbrown 16)downblack 17)downwhite 18)downred 
-        19)downgray 20)downblue 21)downgreen 22)downbrown
+        0) backpack 1)shoulder_bag 2)hand_bag 3)boots 4)gender 5)hat 
+        6)shoes_color 7)upper-body_length 8)downblack 9)downwhite
+        10)downred 11)downgray 12)downblue 13)downgreen 14)downbrown
+        15)upblack 16)upwhite 17)upred 18)uppurple 19)upgray 
+        20)upblue 21)upgreen 22)upbrown 23)ID
     '''
     
     mat = io.loadmat(path)

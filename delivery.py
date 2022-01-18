@@ -38,7 +38,7 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
     
     img_names = load_image_names(main_path)
     output.update({'img_names':img_names,'id':attr_vec[:,-1]})
-    
+            
     if need_parts:  
         if dataset == 'CA_Market':                        
             output.update({'gender':attr_vec[:,0].reshape(len(attr_vec), 1),
@@ -75,6 +75,34 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
                         'body':attr_vec[:,7].reshape(len(attr_vec), 1),
                         'leg_colour':attr_vec[:,8:15],
                         'body_colour':attr_vec[:,15:22]}) 
+            
+    elif need_attr:
+        if dataset == 'CA_Market':
+            output.update({'names' : ['gender','cap','hairless','short hair','long hair',
+                                      'knot', 'h_colorful', 'h_black','Tshirt_shs', 'shirt_ls','coat',
+                                      'top','simple/patterned','b_w','b_r','b_y','b_green','b_b',
+                                      'b_gray','b_p','b_black','backpack', 'shoulder bag','hand bag','no bag','pants',
+                                      'short','skirt','l_w','l_r','l_br','l_y','l_green','l_b',
+                                      'l_gray','l_p','l_black','shoes','sandal',
+                                      'hidden','no color','f_w', 'f_colorful','f_black', 'young', 
+                                      'teenager', 'adult', 'old']})
+        elif dataset == 'Market_attribute':
+            output.update({'names' : ['young', 'teenager', 'adult' ,'old', 'backpack', 'shoulder-bag', 
+                                      'hand-bag', 'down-black','down-blue','down-brown',
+                                      'down-gray','down-green','down-pink','down-purple','down-white',
+                                      'down-yellow','up-black','up-blue','up-green','up-gray', 
+                                      'up-purple','up-red','up-white','up-yellow','lower-body type', 
+                                      'lower-body length','sleeve-length','hair-length','hat ','gender','ID']})
+        elif dataset == 'Duke_attribute':
+            output.update({'names' : ['backpack','shoulder_bag','hand_bag','boots','gender','hat',
+                                      'shoes_color','upper-body_length','downblack','downwhite',
+                                      'downred','downgray','downblue','downgreen','downbrown',
+                                      'upblack','upwhite','upred','uppurple','upgray',
+                                      'upblue','upgreen','upbrown','ID']})
+        elif dataset == "CA_Duke":
+            output.update({'names' : [
+                ]})
+            
     return output
 
 
