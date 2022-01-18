@@ -267,23 +267,30 @@ import numpy as np
 import os
 import pickle
 
-main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/DUKMTMC/Dataset/dukemtmc/DukeMTMC-reID/DukeMTMC-reID/bounding_box_train/'
+#main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/DUKMTMC/Dataset/dukemtmc/DukeMTMC-reID/DukeMTMC-reID/bounding_box_train/'
+main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/DUKMTMC/Dataset/dukemtmc/DukeMTMC-reID/DukeMTMC-reID/bounding_box_test/'
+
+all_attr_path_tr = '/home/taarlab/SI_attributes/attributes/CA_Duke/trainlabel_final.pkl'
+attributes_dict = np.load(all_attr_path_tr,allow_pickle=True)
+
+attributes2 = np.array([attributes_dict[pth] for pth in attributes_dict])
+
+test_attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/labeled test/final_attr_org.npy'
+attributes = np.load(test_attr_path)    
+#attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/final_attr_org.npy'
+#ttributes =  np.load(attr_path)
 
 img_names = os.listdir(main_path)
 img_names.sort()
+img_name = img_names[:len(attributes)]
+
 
 id_ = []
-for name in img_names:
+for name in img_name:
     b = name.split('_')
     id_.append(int(b[0]))
 
-all_attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/trainlabel_final.pkl'
-attributes_dict = np.load(all_attr_path,allow_pickle=True)
 
-attributes = np.array([attributes_dict[pth] for pth in attributes_dict])
-    
-#attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/final_attr_org.npy'
-#ttributes =  np.load(attr_path)
 atr_new = np.zeros((np.shape(attributes)[0], 79), dtype=int)
 
 atr_new[:, :7] = attributes[:, :7] # ['gender','hairless', "short hair","longhair(straight)","knot","unvisible(hair)","burnette"]
@@ -399,6 +406,6 @@ for i in range(len(attr_names_old)):
 #%%
 idd = np.reshape(np.array(id_), (len(id_),1))
 attr_with_id = np.append(atr_new, idd, axis=1)
-np.save('/home/taarlab/SI_attributes/attributes/CA_Duke_with_id.npy',attr_with_id)
+np.save('/home/taarlab/SI_attributes/attributes/CA_Duke_test_with_id.npy',attr_with_id)
 
 
