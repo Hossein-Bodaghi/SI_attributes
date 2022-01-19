@@ -404,8 +404,7 @@ for i in range(len(attr_names_old)):
     print(i , ')', attr_names_old[i], '-->', int(sum_attr[i]))
     
 #%%
+
 idd = np.reshape(np.array(id_), (len(id_),1))
 attr_with_id = np.append(atr_new, idd, axis=1)
 np.save('/home/taarlab/SI_attributes/attributes/CA_Duke_test_with_id.npy',attr_with_id)
-
-
