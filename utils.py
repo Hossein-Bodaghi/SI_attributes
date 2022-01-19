@@ -74,7 +74,7 @@ def validation_idx(test_idx, ratio=5):
 def attr_number(attr):
     attr_numbers = {}
     for key in attr:
-        if key == 'img_names' or key == 'id':
+        if key == 'img_names' or key == 'id' or key == 'names':
             pass
         else:
             number = torch.sum(attr[key], dim=0)
@@ -128,7 +128,13 @@ def part_data_delivery(weights, device, dataset='CA_Market'):
                 loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
             else:
                 loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
-    
+    if dataset == 'CA_Duke':
+        for key in weights:
+            if key == 'body_type' or key == 'gender' or key == 'body_colour':
+                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
+            else:
+                loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
+                
     elif dataset == 'Market_attribute':
         
         for key in weights:
