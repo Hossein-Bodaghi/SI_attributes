@@ -64,7 +64,7 @@ def CA_part_loss_calculator(out_data, data, part_loss, categorical = True):
             else :
                 loss_part = loss(out_data[key], data[key].argmax(dim=1))
             attr_loss.append(loss_part)
-    if not categorical:
+    else:
         for key, loss in part_loss.items():
             loss_part = loss(out_data[key], data[key].float())
             attr_loss.append(loss_part)
@@ -265,7 +265,7 @@ def dict_training_multi_branch(num_epoch,
                 attr_loss, loss_total = CA_part_loss_calculator(out_data = out_data,
                                                                 data = data,
                                                                 part_loss = part_loss,
-                                                                categorical = True)
+                                                                categorical = categorical)
 
                 loss_parts_train += attr_loss
 
@@ -284,11 +284,11 @@ def dict_training_multi_branch(num_epoch,
                 
                 # print log
                 tb.add_scalar('Loss/train', loss_total.item(), idx)
-                tb.add_scalar('Accuracy/train', train_attr_metrics[-3], idx)
-                tb.add_scalar('F1/train', train_attr_metrics[-2], idx)
+                tb.add_scalar('Accuracy/train', acc_train[-1], idx)
+                tb.add_scalar('F1/train', ft_train[-1], idx)
 
                 if idx % 1 == 0:
-                    tepoch.set_postfix(loss=loss_total.item(),F1=100.*train_attr_metrics[-2] , Acc=100.*train_attr_metrics[-3])
+                    tepoch.set_postfix(loss=loss_total.item(), F1=100*ft_train[-1], Acc=100.*acc_train[-1])
                     """
                     print('\nTrain Epoch: {} [{}/{} , lr {}] \t Loss: {:.6f} \nattr_metrics: F1_attr: {:.3f} acc_attr{:.3f}'.format(
                         epoch, idx , len(train_loader),
@@ -320,7 +320,7 @@ def dict_training_multi_branch(num_epoch,
                 attr_loss, loss_total = CA_part_loss_calculator(out_data=out_data,
                                                                 data=data,
                                                                 part_loss=part_loss,
-                                                                categorical=True)
+                                                                categorical=categorical)
                 loss_parts_test += attr_loss
                 
                 y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)

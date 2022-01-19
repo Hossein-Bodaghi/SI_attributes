@@ -179,7 +179,7 @@ class CA_Loader(Dataset):
         out = {'img' : img}
         
         if self.need_attr:
-            out.update({'attr':self.attr[idx]})
+            out.update({'attributes':self.attr[idx]})
         if self.need_collection:
             if self.dataset == 'CA_Market':
                 out.update({

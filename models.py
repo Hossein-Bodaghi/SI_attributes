@@ -1229,22 +1229,10 @@ class mb12_CA_build_model(nn.Module):
 class attributes_model(nn.Module):
     
     '''
-    this is our network in this version it just take output from features of
-    original omni-scale network.
-    
-    if attr_inc=True then for each attribute has a seperate linear 
-    layer for classification
-    
-    if id_inc=True the output of attribute detection and models features will be concatanated
-    and then a clasiification will predict the id of input picture
-    
-    in this version forward function and predict function defined seperatetly 
-    in forward we dont have 
+    a model for training whole attributes 
     '''
-    
     def __init__(self,
                  model,
-                 num_id,
                  feature_dim = 512,
                  attr_dim = 79):
         
@@ -1263,7 +1251,7 @@ class attributes_model(nn.Module):
         if get_features:
             return features
         else:
-            return {'attr':self.attr_lin(features)}
+            return {'attributes':self.attr_lin(features)}
 
     def save_baseline(self, saving_path):
         torch.save(self.model.state_dict(), saving_path)

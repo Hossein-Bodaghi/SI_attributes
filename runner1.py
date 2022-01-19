@@ -9,7 +9,7 @@ Created on Tue Jan 11 20:07:29 2022
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT
 from trainings import dict_training_multi_branch
-from models import mb12_CA_build_model
+from models import mb12_CA_build_model, attributes_model
 from delivery import data_delivery
 from loaders import CA_Loader
 # torch requirements
@@ -27,25 +27,22 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]', default='CA_Market')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]', default='CA_Duke')
     parser.add_argument('--main_path',type = str,help = 'if your dataset is CA_Market or Market_attribute our work use gt_bbox folder of dataset',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
     parser.add_argument('--test_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_test')
     parser.add_argument('--attr_path',type = str,help = './attributes/CA_Market.npy' + './attributes/Market_attribute_with_id.npy',default = './attributes/CA_Market.npy' )
-    parser.add_argument('--attr_path_train',type = str,help ='path of attributes: for Dukes train_attr and test_attr are required and for Markets attributes vector is enough',
-        default = './attributes/Duke_attribute_test_with_id.npy')
-    parser.add_argument('--attr_path_test',type = str,help ='path of attributes: for Dukes train_attr and test_attr are required and for Markets attributes vector is enough',
-        default = './attributes/Duke_attribute_test_with_id.npy')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')    
+    parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id path , Duke_attribute_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
+    parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
+    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')    
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
-                                                           +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='body_colour')
-    parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 3)
+                                                           +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
+    parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 1)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting None, effective',default='None')
-    parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
-    parser.add_argument('--baseline_path',type = str,help = 'path of weights for pre-trained networks ./osnet_x1_0_market.pth, osnet_ain_x1_0_msmt17.pth',
-                        default='./checkpoints/osnet_ain_x1_0_msmt17.pth')
+    parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_ain_x1_0')
+    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17]',default='./checkpoints/osnet_ain_x1_0_msmt17.pth')
     parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network',default=None)
     args = parser.parse_args()
     return args
@@ -70,7 +67,7 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
     
     for key , value in attr.items():
       try: print(key , 'size is: \t {}'.format((value.size())))
-      except TypeError:
+      except:
         print(key)
 
     train_idx = torch.load('./attributes/train_idx_full.pth')
@@ -86,18 +83,18 @@ else:
     attr_test = data_delivery(test_img_path,path_attr=path_attr_test,need_parts=part_based,need_attr=not part_based,dataset = args.dataset)
     
     train_idx = np.arange(len(attr_train['img_names']))
-    test_idx = np.arange(len(attr_test['img_names']))  
+    test_idx = np.arange(len(attr_test['id']))  
         
     print('\n', 'train-set specifications') 
     for key , value in attr_train.items():   
         try: print(key , 'size is: \t {}'.format((value.size())))
-        except TypeError:
+        except:
           print(key)
    
     print('\n', 'test-set specifications') 
     for key , value in attr_test.items():
         try: print(key , 'size is: \t {}'.format((value.size())))
-        except TypeError:
+        except:
           print(key)
           
 test_idx = validation_idx(test_idx)
@@ -156,7 +153,7 @@ else:
                               need_attr = not part_based,
                               need_collection = part_based,
                               need_id = False,
-                              two_transforms = False)
+                              two_transforms = False) 
     test_data = CA_Loader(img_path=test_img_path,
                               attr=attr_test,
                               resolution=(256, 128),
@@ -195,19 +192,16 @@ if args.baseline[:5] == 'osnet':
         pretrained=False
     )
     
-    if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
-        utils.load_pretrained_weights(model, args.baseline_path)
-    else:
-        raise Exception("The pretrained osnet-baseline for Duke is not downloaded")
+    utils.load_pretrained_weights(model, args.baseline_path)
 else:
     raise Exception("The SI feature_extractor for lu_person is not ready")
     
 #### freezing the network
 params = model.parameters()
-for param in params:
-    param.requires_grad = False
+for idx, param in enumerate(params):
+    if idx <= 214: param.requires_grad = False
     
-if args.dataset == 'CA_Market':
+if part_based:
     attr_net = mb12_CA_build_model(
                       model,
                       main_cov_size = 384,
@@ -216,7 +210,7 @@ if args.dataset == 'CA_Market':
                       sep_conv_size = 64,
                       feature_selection = None)
 else:
-    raise Exception("multi-branch model is available only for CA_Market dataset") 
+    attr_net = attributes_model(model, feature_dim = 512, attr_dim = 79)
 
 if args.trained_multi_branch is not None:
     trained_net = torch.load(args.trained_multi_branch)
@@ -235,9 +229,9 @@ print('baseline has {} parameters'.format(baseline_size),
 
 params = attr_net.parameters()
 
-lr = 3.5e-5
+lr = 3.5e-4
 optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
-scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 10, 17], gamma=0.8)
+scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 10, 17], gamma=0.9)
 
 #%%
 save_path = './results/'
@@ -250,8 +244,8 @@ dict_training_multi_branch(num_epoch = 30,
                       save_path = save_path,  
                       part_loss = part_loss,
                       device = device,
-                      version = 'mb_conv3_body_colour_nowei_CA',
-                      categorical = args.training_strategy,
+                      version = 'simple_ain_CA_Duke',
+                      categorical = part_based,
                       resume=False,
                       loss_train = None,
                       loss_test=None,
