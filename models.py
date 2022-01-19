@@ -1223,3 +1223,48 @@ class mb12_CA_build_model(nn.Module):
     def save_baseline(self, saving_path):
         torch.save(self.model.state_dict(), saving_path)
         print('baseline model save to {}'.format(saving_path))
+        
+#%%
+
+class attributes_model(nn.Module):
+    
+    '''
+    this is our network in this version it just take output from features of
+    original omni-scale network.
+    
+    if attr_inc=True then for each attribute has a seperate linear 
+    layer for classification
+    
+    if id_inc=True the output of attribute detection and models features will be concatanated
+    and then a clasiification will predict the id of input picture
+    
+    in this version forward function and predict function defined seperatetly 
+    in forward we dont have 
+    '''
+    
+    def __init__(self,
+                 model,
+                 num_id,
+                 feature_dim = 512,
+                 attr_dim = 79):
+        
+        super().__init__()
+        self.feature_dim = feature_dim
+        self.model = model     
+        self.attr_lin = nn.Linear(in_features=feature_dim , out_features=attr_dim)  
+                
+    def out_layers_extractor(self, x, layer):
+        out_os_layers = self.model.layer_extractor(x, layer) 
+        return out_os_layers   
+        
+    def forward(self, x, get_features = False):
+        
+        features = self.out_layers_extractor(x, 'out_fc') 
+        if get_features:
+            return features
+        else:
+            return {'attr':self.attr_lin(features)}
+
+    def save_baseline(self, saving_path):
+        torch.save(self.model.state_dict(), saving_path)
+        print('baseline model save to {}'.format(saving_path))  
