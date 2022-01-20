@@ -402,6 +402,8 @@ def dict_evaluating_multi_branch(attr_net,
     # evaluation:     
     attr_net.eval()
     with torch.no_grad():
+        targets = []
+        predicts = []
         for idx, data in enumerate(test_loader):
             
             for key, _ in data.items():
@@ -409,6 +411,10 @@ def dict_evaluating_multi_branch(attr_net,
                 
             # forward step
             out_data = attr_net.forward(data['img'])           
-            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)
-            test_attr_metrics = tensor_metrics(y_target.float(), y_attr)
+            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, categorical=categorical)
+            predicts.append(y_attr.to('cpu'))
+            targets.append(y_target.to('cpu'))
+    predicts = torch.cat(predicts)
+    targets = torch.cat(targets)   
+    test_attr_metrics = tensor_metrics(y_target.float(), y_attr)           
     return test_attr_metrics
