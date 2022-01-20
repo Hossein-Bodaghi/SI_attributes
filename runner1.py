@@ -97,7 +97,7 @@ else:
         except:
           print(key)
           
-test_idx = validation_idx(test_idx)
+valid_idx = validation_idx(test_idx)
 #%%    
 ''' Delivering data as attr dictionaries '''
 
@@ -131,7 +131,16 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
                               need_collection = part_based,
                               need_id = False,
                               two_transforms = True) 
-    
+
+    valid_data = CA_Loader(img_path=main_path,
+                              attr=attr,
+                              resolution=(256, 128),
+                              indexes=valid_idx,
+                              dataset = args.dataset,
+                              need_attr = not part_based,
+                              need_collection = part_based,
+                              need_id = False,
+                              two_transforms = True)     
 
 
     if args.training_part == 'all':
@@ -164,6 +173,15 @@ else:
                               need_id = False,
                               two_transforms = True) 
     
+    valid_data = CA_Loader(img_path=main_path,
+                              attr=attr,
+                              resolution=(256, 128),
+                              indexes=valid_idx,
+                              dataset = args.dataset,
+                              need_attr = not part_based,
+                              need_collection = part_based,
+                              need_id = False,
+                              two_transforms = True)  
     if args.training_part == 'all':      
         weights = attr_weight(attr=attr_train, effective=args.loss_weights, device=device, beta=0.99)
     else:
@@ -176,6 +194,7 @@ part_loss = part_data_delivery(weights, dataset = args.dataset, device = device)
 batch_size = 32
 train_loader = DataLoader(train_data,batch_size=batch_size,shuffle=True)
 test_loader = DataLoader(test_data,batch_size=100,shuffle=False)
+valid_loader = DataLoader(valid_data,batch_size=100,shuffle=False)
 
 #%%
 torch.cuda.empty_cache()
@@ -238,7 +257,7 @@ save_path = './results/'
 dict_training_multi_branch(num_epoch = 30,
                       attr_net = attr_net,
                       train_loader = train_loader,
-                      test_loader = test_loader,
+                      test_loader = valid_loader,
                       optimizer = optimizer,
                       scheduler = scheduler,
                       save_path = save_path,  
@@ -254,5 +273,7 @@ dict_training_multi_branch(num_epoch = 30,
                       train_attr_acc=None,
                       test_attr_acc=None,  
                       stoped_epoch=None)
+#%%
+
 
 
