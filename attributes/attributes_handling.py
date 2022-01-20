@@ -408,3 +408,59 @@ for i in range(len(attr_names_old)):
 idd = np.reshape(np.array(id_), (len(id_),1))
 attr_with_id = np.append(atr_new, idd, axis=1)
 np.save('/home/taarlab/SI_attributes/attributes/CA_Duke_test_with_id.npy',attr_with_id)
+
+#%%
+"""
+attributes of PA100k : 
+attrs = ['Female','AgeOver60','Age18-60','AgeLess18','Front','Side','Back',
+        'Hat','Glasses','HandBag','ShoulderBag','Backpack','HoldObjectsInFront',
+        'ShortSleeve','LongSleeve','UpperStride','UpperLogo','UpperPlaid',
+        'UpperSplice','LowerStripe','LowerPattern','LongCoat','Trousers',
+        'Shorts','Skirt&Dress','boots']
+"""
+
+import numpy as np
+import os
+from scipy import io
+import pickle
+
+main_path = 'E:/UT/NEW_WAY/DATASET\PA100k/release_data/release_data/'
+
+# all_attr_path_tr = '/home/taarlab/SI_attributes/attributes/CA_Duke/trainlabel_final.pkl'
+# attributes_dict = np.load(all_attr_path_tr,allow_pickle=True)
+#
+# attributes2 = np.array([attributes_dict[pth] for pth in attributes_dict])
+#
+# test_attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/labeled test/final_attr_org.npy'
+# attributes = np.load(test_attr_path)
+attr_path = 'E:/UT/NEW_WAY/DATASET/PA100k/annotation.mat'
+mat = io.loadmat(attr_path)
+labtr = mat['train_label']
+labval = mat['val_label']
+labts = mat['test_label']
+t = np.append(labtr, labval, axis= 0)
+attributes = np.append(t, labts, axis= 0)
+
+img_names = os.listdir(main_path)
+img_names.sort()
+
+id_ = []
+for name in img_names:
+    b = name.split('.')
+    id_.append(int(b[0]))
+print(id_)
+
+attr_names = ['Female','AgeOver60','Age18-60','AgeLess18','Front','Side','Back',
+              'Hat','Glasses','HandBag','ShoulderBag','Backpack','HoldObjectsInFront',
+              'ShortSleeve','LongSleeve','UpperStride','UpperLogo','UpperPlaid',
+              'UpperSplice','LowerStripe','LowerPattern','LongCoat','Trousers',
+              'Shorts','Skirt&Dress','boots'
+              ]
+sum_attr = np.sum(attributes, axis=0)
+print('new attribtes \n')
+for i in range(len(attr_names)):
+    print(i , ')', attr_names[i], '-->', int(sum_attr[i]))
+
+idd = np.reshape(np.array(id_), (len(id_),1))
+attr_with_id = np.append(attributes, idd, axis=1)
+np.save('E:/UT/NEW_WAY/SI_attributes/attributes/PA100k_all_with_id.npy',attr_with_id)
