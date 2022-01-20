@@ -127,7 +127,7 @@ def CA_target_attributes_12(out_data, data, part_loss, tensor_max = False, categ
     else:
         m = 0
         for key in part_loss:
-            if key == 'body_type' or key == 'gender' or key == 'body_colour':
+            if key == 'body_type' or key == 'gender' or key == 'body_colour' or key == 'attributes':
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
             else :
                 out_data[key] = torch.sigmoid(out_data[key])
@@ -383,3 +383,32 @@ def dict_training_multi_branch(num_epoch,
                 print('test f1 improved','\n')
             else:
                 print('test f1 improved','\n')
+                
+
+def dict_evaluating_multi_branch(attr_net,
+                               test_loader,
+                               save_path,
+                               device,
+                               part_loss,
+                               categorical,
+                               loss_train=None,
+                               loss_test=None,
+                               train_attr_F1=None,
+                               test_attr_F1=None,
+                               train_attr_acc=None,
+                               test_attr_acc=None,
+                               stoped_epoch=None):
+
+    # evaluation:     
+    attr_net.eval()
+    with torch.no_grad():
+        for idx, data in enumerate(test_loader):
+            
+            for key, _ in data.items():
+                data[key] = data[key].to(device)
+                
+            # forward step
+            out_data = attr_net.forward(data['img'])           
+            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)
+            test_attr_metrics = tensor_metrics(y_target.float(), y_attr)
+    return test_attr_metrics

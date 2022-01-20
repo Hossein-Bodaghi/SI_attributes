@@ -13,6 +13,7 @@ from models import my_load_pretrain,MyOsNet,feature_model,MyOsNet2, CA_market_mo
 from loaders import MarketLoader4, Market_folder_Loader
 from metrics import tensor_metrics, boolian_metrics, tensor_metrics_detailes
 import time
+import os
 import torch
 import torch.nn as nn 
 from torchvision import transforms
@@ -29,6 +30,36 @@ print('calculation is on:',device)
 torch.cuda.empty_cache()
 
 #%%
+
+# networks_main = '/home/hossein/SI_attributes/results/'
+# training_types = os.listdir(networks_main)
+
+
+# for training_type in training_types:
+#     typee = training_type.split('_')[2]
+#     wei_status = training_type.split('_')[3]
+#     dataset = training_type.split('_')[4]
+    
+    
+    
+    
+    
+# if typee == '12branches':
+#     pass
+# elif typee == 'objects&colors':
+#     pass
+# elif typee == 'all':
+#     pass
+    
+    
+# def 12branches_evaluation    
+    
+    
+
+    
+def strategy_handling():
+    pass
+
 def tensor_max(tensor):
 
     idx = torch.argmax(tensor, dim=1, keepdim=True)
