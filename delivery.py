@@ -92,30 +92,31 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
                                       'down-gray','down-green','down-pink','down-purple','down-white',
                                       'down-yellow','up-black','up-blue','up-green','up-gray', 
                                       'up-purple','up-red','up-white','up-yellow','lower-body type', 
-                                      'lower-body length','sleeve-length','hair-length','hat ','gender','ID']})
+                                      'lower-body length','sleeve-length','hair-length','hat ','gender']})
         elif dataset == 'Duke_attribute':
             output.update({'names' : ['backpack','shoulder_bag','hand_bag','boots','gender','hat',
                                       'shoes_color','upper-body_length','downblack','downwhite',
                                       'downred','downgray','downblue','downgreen','downbrown',
                                       'upblack','upwhite','upred','uppurple','upgray',
-                                      'upblue','upgreen','upbrown','ID']})
+                                      'upblue','upgreen','upbrown']})
         elif dataset == "CA_Duke":
             output.update({'names' : ['gender','hairless',"short hair","longhair(straight)","knot","unvisible(hair)",
-                  "burnette","blonde", "black",'no-color',
-                  'cap',"snowcap","hoodiecap","no cap","unvisible(cap)",
-                  "c_white","c_blue","c_green","c_red","c_brown","c_yellow","c_gray","c_black",'no-color', 
-                  "T-shirt/shirt","jacket/sweatshirt","overcoat","hoodie",
-                  "b_white","b_purple","b_pink","b_blue","b_green","b_red","b_brown","b_yellow","b_gray","b_black", 
-                  "backpack","bag/handbag",'no bags',
-                  "umbrella(open)","umbrella(closed)","no umbrella",
-                  "beard","shaved","hidden",
-                  "pants","shorts","skirt","unvisible",
-                  "l_white","l_blue","l_green","l_red","l_brown","l_yellow","l_gray","l_black",'no-color',
-                  'formal shoes',"sneakers","high boots",'hidden',
-                  "f_white","f_colorful","f_brown","f_gray","f_black",'no-color',
-                  "sunglasses","headphone","gloves","scarf","tie",
-                  "front/back",
-                  "white", "black", "unkown"]})
+                                      "burnette","blonde", "black",'no-color',
+                                      'cap',"snowcap","hoodiecap","no cap","unvisible(cap)",
+                                      "c_white","c_blue","c_green","c_red","c_brown","c_yellow","c_gray","c_black",'no-color', 
+                                      "T-shirt/shirt","jacket/sweatshirt","overcoat","hoodie",
+                                      "b_white","b_purple","b_pink","b_blue","b_green","b_red","b_brown","b_yellow","b_gray","b_black", 
+                                      "backpack","bag/handbag",'no bags',
+                                      "umbrella(open)","umbrella(closed)","no umbrella",
+                                      "beard","shaved","hidden",
+                                      "pants","shorts","skirt","unvisible",
+                                      "l_white","l_blue","l_green","l_red","l_brown","l_yellow","l_gray","l_black",'no-color',
+                                      'formal shoes',"sneakers","high boots",'hidden',
+                                      "f_white","f_colorful","f_brown","f_gray","f_black",'no-color',
+                                      "sunglasses","headphone","gloves","scarf","tie",
+                                      "front/back",
+                                      "white", "black", "unkown"
+                                      ]})
             
     return output
 
