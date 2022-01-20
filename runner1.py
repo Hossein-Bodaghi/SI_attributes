@@ -10,6 +10,7 @@ Created on Tue Jan 11 20:07:29 2022
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT
 from trainings import dict_training_multi_branch, dict_evaluating_multi_branch
 from models import mb12_CA_build_model, attributes_model
+from evaluation import metrics_print, total_metrics
 from delivery import data_delivery
 from loaders import CA_Loader
 # torch requirements
@@ -290,7 +291,7 @@ if args.mode == 'train':
     
 #%%
 if args.mode == 'eval':
-    metrics_result = dict_evaluating_multi_branch(attr_net = attr_net,
+    attr_metrics = dict_evaluating_multi_branch(attr_net = attr_net,
                                    test_loader = test_loader,
                                    save_path = save_path,
                                    device = device,
@@ -304,4 +305,10 @@ if args.mode == 'eval':
                                    test_attr_acc=None,
                                    stoped_epoch=None)
 
-
+    for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
+        if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
+            metrics_print(attr_metrics, attr['names'], metricss='precision')
+        else:
+            metrics_print(attr_metrics, attr_test['names'], metricss='precision')
+            
+    total_metrics(attr_metrics)

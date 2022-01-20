@@ -222,89 +222,6 @@ def cmc_map_fromdist(query, gallery, dist_matrix, feature_mode='concat', max_ran
     print('os_map on version 6.2\n features:{}  is:'.format(feature_mode) , rank[1])
     return {'ca_map':mean_average_precision, 'os_rank':rank}
 
-#%%
-'''
-Person re-id metrices 
-
-just for CA_market_model2 fine-tuned on CA-Market or Market1501
-
-'''
-
-dist_matrix = get_feature_fromloader(attr_net_camarket,query_loader, gallery_loader,feature_mode=['concat','cnn','attr'],
-                                     need_attr=True, get_attr=True, get_feature=True)
-
-concat_ranks = cmc_map_fromdist(query, gallery, dist_matrix['concat'], feature_mode='concat', max_rank=10)
-
-
-#%%
-'''
-Person re-id metrices 
-
-just for CA_market_model2 not fine_tuned
-
-'''
-
-# get distance matrx 
-dist_matrix = get_feature_fromloader(attr_net_osnet,query_loader, gallery_loader,feature_mode=['cnn'],
-                                     need_attr=True, get_attr=True, get_feature=True)
-
-cnn_ranks = cmc_map_fromdist(query, gallery, dist_matrix['cnn'], feature_mode='cnn')
-
-# ca_map on version 6.2
-#  features:cnn is: 0.9015981651679014
-# os_map on version 6.2
-#  features:cnn  is: 0.6552659433419571
-
-#%%
-main_path = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
-path_train = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/bounding_box_train/'
-path_attr = './attributes/total_attr.npy'
-train_idx = torch.load( './attributes/train_idx_full.pth')
-test_idx = torch.load('./attributes/test_idx_full.pth')
-
-attr = data_delivery(main_path=main_path,
-                     path_attr=path_attr,
-                     need_collection=True,
-                     double=False,
-                     need_attr=False)
-
-test_data = MarketLoader4(img_path=main_path,
-                          attr=attr,
-                          resolution=(299, 299),
-                          indexes=test_idx,
-                          need_attr = False,
-                          need_collection=True,
-                          need_id = False,
-                          two_transforms = False,                          
-                          ) 
-batch_size = 100
-test_loader = DataLoader(test_data,batch_size=batch_size,shuffle=True)
-
-#%%
-attr_metrics = attr_evaluation(net, test_loader, device, need_attr=False)
-
-#%%
-attr_colomns = ['gender','cap','hairless','short hair','long hair',
-           'knot', 'Tshirt/shirt','coat',
-           'top','simple/patterned','b_w','b_r',
-           'b_o','b_y','b_green','b_b',
-           'b_gray','b_p','b_black','backpack',
-           'hand bag','no bag','pants',
-           'short','skirt','l_w','l_r','l_o','l_y','l_green','l_b',
-           'l_gray','l_p','l_black','shoes','sandal',
-           'hidden','f_w','f_r','f_o','f_y','f_green','f_b',
-           'f_gray','f_p','f_black']
-
-clean_attr_colomns = ['gender','cap','hairless','short hair','long hair',
-           'knot', 'Tshirt/shirt','coat',
-           'top','simple/patterned','b_w','b_r',
-           'b_o','b_y','b_green','b_b',
-           'b_gray','b_p','b_black','backpack',
-           'hand bag','no bag','pants',
-           'short','skirt','l_w','l_r','l_o','l_y','l_green','l_b',
-           'l_gray','l_p','l_black','shoes','sandal',
-           'hidden','f_w','f_r','f_o','f_y','f_green','f_b',
-           'f_gray','f_p','f_black']
 
 def metrics_print(attr_metrics, attr_colomns, metricss='precision'):
     n = 0
@@ -337,9 +254,6 @@ def total_metrics(attr_metrics):
     for i in range(5):
         print(i, ')', metrices[i], '-->', attr_metrics[i+5]) 
 
-    
-metrics_print(attr_metrics, attr_colomns, metricss='f1')
-total_metrics(attr_metrics)
 
 def change2list(torch_tensor):
     list_tensor = []
@@ -347,11 +261,6 @@ def change2list(torch_tensor):
         list_tensor.append(met.item())
     return list_tensor
 
-precision_list = change2list(attr_metrics[0])
-recall_list = change2list(attr_metrics[1])
-accuracy_list = change2list(attr_metrics[2])
-f1_list = change2list(attr_metrics[3])
-mean_accuracy_list = change2list(attr_metrics[4])
 # # precision
 # thr_half_sigmoid = tensor([1.0000, 0.0000, 0.0000, 0.9016, 0.8333, 0.5000, 0.9419, 0.0000, 0.8000,
 #         0.5000, 0.8621, 0.8750, 0.0000, 1.0000, 0.6667, 0.5000, 0.8571, 0.7500,
