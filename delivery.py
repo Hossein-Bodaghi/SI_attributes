@@ -17,7 +17,7 @@ def data_delivery(main_path,
                   dataset = 'CA_Market'):
     '''
     
-mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
+mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
     Parameters
     ----------
     main_path : TYPE string
@@ -117,6 +117,13 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
                                       "front/back",
                                       "white", "black", "unkown"
                                       ]})
+        elif dataset == "PA100k":
+            output.update({'names': ['Female','AgeOver60','Age18-60','AgeLess18','Front','Side','Back',
+                                     'Hat','Glasses','HandBag','ShoulderBag','Backpack','HoldObjectsInFront',
+                                     'ShortSleeve','LongSleeve','UpperStride','UpperLogo','UpperPlaid',
+                                     'UpperSplice','LowerStripe','LowerPattern','LongCoat','Trousers',
+                                     'Shorts','Skirt&Dress','boots']})
+
             
     return output
 
