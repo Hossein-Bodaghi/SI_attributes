@@ -27,22 +27,23 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]', default='CA_Duke')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]', default='CA_Market')
     parser.add_argument('--main_path',type = str,help = 'if your dataset is CA_Market or Market_attribute our work use gt_bbox folder of dataset',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
     parser.add_argument('--test_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_test')
     parser.add_argument('--attr_path',type = str,help = './attributes/CA_Market.npy' + './attributes/Market_attribute_with_id.npy',default = './attributes/CA_Market.npy' )
     parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id path , Duke_attribute_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
     parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')    
+    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')    
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
-                                                           +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
-    parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 1)
+                                                           +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='foot_colour')
+    parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 3)
+    parser.add_argument('--lr',type = int,help = 'learning rate',default = 3.5e-5)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting None, effective',default='None')
-    parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_ain_x1_0')
-    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17]',default='./checkpoints/osnet_ain_x1_0_msmt17.pth')
+    parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
+    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17]',default='./checkpoints/osnet_x1_0_market.pth')
     parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network',default=None)
     args = parser.parse_args()
     return args
@@ -79,8 +80,10 @@ else:
     path_attr_train = args.attr_path_train
     path_attr_test = args.attr_path_test
     
-    attr_train = data_delivery(train_img_path,path_attr=path_attr_train,need_parts=part_based,need_attr=not part_based,dataset = args.dataset)    
-    attr_test = data_delivery(test_img_path,path_attr=path_attr_test,need_parts=part_based,need_attr=not part_based,dataset = args.dataset)
+    attr_train = data_delivery(train_img_path, path_attr=path_attr_train,
+                               need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
+    attr_test = data_delivery(test_img_path, path_attr=path_attr_test,
+                              need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
     
     train_idx = np.arange(len(attr_train['img_names']))
     test_idx = np.arange(len(attr_test['id']))  
@@ -229,7 +232,7 @@ print('baseline has {} parameters'.format(baseline_size),
 
 params = attr_net.parameters()
 
-lr = 3.5e-4
+lr = 3.5e-5
 optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 10, 17], gamma=0.9)
 
@@ -244,7 +247,7 @@ dict_training_multi_branch(num_epoch = 30,
                       save_path = save_path,  
                       part_loss = part_loss,
                       device = device,
-                      version = 'simple_ain_CA_Duke',
+                      version = 'mb_conv3_foot_colour_nowei_CA',
                       categorical = part_based,
                       resume=False,
                       loss_train = None,
