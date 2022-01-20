@@ -71,12 +71,15 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dat
       except:
         print(key)
         
-    if dataset == 'PA100k':
-        train_idx = np.arange(len(attr_train['img_names']))
-        test_idx = np.arange(len(attr_test['id'])) 
+    if args.dataset == 'PA100k':
+        train_idx = np.arange(int(0.8*len(attr['img_names'])))
+        valid_idx = np.arange(int(0.8*len(attr['img_names'])),int(0.9*len(attr['img_names']))) 
+        test_idx = np.arange(int(0.9*len(attr['img_names'])))
     else:
         train_idx = torch.load('./attributes/train_idx_full.pth')
-        test_idx = torch.load('./attributes/test_idx_full.pth')    
+        test_idx = torch.load('./attributes/test_idx_full.pth') 
+        valid_idx = validation_idx(test_idx)
+
 else:
     
     train_img_path = args.train_path
@@ -90,7 +93,8 @@ else:
                               need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
     
     train_idx = np.arange(len(attr_train['img_names']))
-    test_idx = np.arange(len(attr_test['id']))  
+    test_idx = np.arange(len(attr_test['id']))
+    valid_idx = validation_idx(test_idx)
         
     print('\n', 'train-set specifications') 
     for key , value in attr_train.items():   
@@ -103,8 +107,7 @@ else:
         try: print(key , 'size is: \t {}'.format((value.size())))
         except:
           print(key)
-          
-valid_idx = validation_idx(test_idx)
+
 #%%    
 ''' Delivering data as attr dictionaries '''
 
@@ -116,7 +119,7 @@ train_transform =  transforms.Compose([transforms.RandomRotation(degrees=10),
                             ])
 #torchvision.transforms.RandomPerspective(distortion_scale, p)
 
-if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
+if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
         
     train_data = CA_Loader(img_path=main_path,
                               attr=attr,
