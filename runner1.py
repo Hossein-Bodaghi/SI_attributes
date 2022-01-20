@@ -27,17 +27,17 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]', default='CA_Market')
-    parser.add_argument('--main_path',type = str,help = 'if your dataset is CA_Market or Market_attribute our work use gt_bbox folder of dataset',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='CA_Market')
+    parser.add_argument('--main_path',type = str,help = 'image_path = [Market1501/Market-1501-v15.09.15/gt_bbox/,PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
     parser.add_argument('--test_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_test')
-    parser.add_argument('--attr_path',type = str,help = './attributes/CA_Market.npy' + './attributes/Market_attribute_with_id.npy',default = './attributes/CA_Market.npy' )
+    parser.add_argument('--attr_path',type = str,help = '[CA_Market,PA100k_all_with_id,Market_attribute_with_id]',default = './attributes/CA_Market.npy' )
     parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id path , Duke_attribute_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
     parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')    
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
-                                                           +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='foot_colour')
+                                                           +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='body_type')
     parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 3)
     parser.add_argument('--lr',type = int,help = 'learning rate',default = 3.5e-5)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
@@ -57,7 +57,7 @@ args = parse_args()
 part_based = True if args.training_strategy == 'categorized' else False # if categotized, for each part one tesor will be genetrated
                                                                         # elif vectorize, only an attribute vector will be generated 
 
-if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
+if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
     main_path = args.main_path   
     path_attr = args.attr_path 
     attr = data_delivery(main_path,
@@ -70,9 +70,13 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute':
       try: print(key , 'size is: \t {}'.format((value.size())))
       except:
         print(key)
-
-    train_idx = torch.load('./attributes/train_idx_full.pth')
-    test_idx = torch.load('./attributes/test_idx_full.pth')    
+        
+    if dataset == 'PA100k':
+        train_idx = np.arange(len(attr_train['img_names']))
+        test_idx = np.arange(len(attr_test['id'])) 
+    else:
+        train_idx = torch.load('./attributes/train_idx_full.pth')
+        test_idx = torch.load('./attributes/test_idx_full.pth')    
 else:
     
     train_img_path = args.train_path
@@ -266,7 +270,7 @@ dict_training_multi_branch(num_epoch = 30,
                       save_path = save_path,  
                       part_loss = part_loss,
                       device = device,
-                      version = 'mb_conv3_foot_colour_nowei_CA',
+                      version = 'mb_conv3_body_type_nowei_CA',
                       categorical = part_based,
                       resume=False,
                       loss_train = None,
