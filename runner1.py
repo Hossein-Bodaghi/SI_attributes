@@ -8,7 +8,7 @@ Created on Tue Jan 11 20:07:29 2022
 #%%
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT
-from trainings import dict_training_multi_branch
+from trainings import dict_training_multi_branch, dict_evaluating_multi_branch
 from models import mb12_CA_build_model, attributes_model
 from delivery import data_delivery
 from loaders import CA_Loader
@@ -28,6 +28,7 @@ torch.cuda.empty_cache()
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]', default='CA_Market')
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
     parser.add_argument('--main_path',type = str,help = 'if your dataset is CA_Market or Market_attribute our work use gt_bbox folder of dataset',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
     parser.add_argument('--test_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_test')
@@ -257,26 +258,40 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 10
 
 #%%
 save_path = './results/'
-dict_training_multi_branch(num_epoch = 30,
-                      attr_net = attr_net,
-                      train_loader = train_loader,
-                      test_loader = valid_loader,
-                      optimizer = optimizer,
-                      scheduler = scheduler,
-                      save_path = save_path,  
-                      part_loss = part_loss,
-                      device = device,
-                      version = 'mb_conv3_foot_colour_nowei_CA',
-                      categorical = part_based,
-                      resume=False,
-                      loss_train = None,
-                      loss_test=None,
-                      train_attr_F1=None,
-                      test_attr_F1=None,
-                      train_attr_acc=None,
-                      test_attr_acc=None,  
-                      stoped_epoch=None)
+if args.mode == 'train':
+    dict_training_multi_branch(num_epoch = 30,
+                          attr_net = attr_net,
+                          train_loader = train_loader,
+                          test_loader = valid_loader,
+                          optimizer = optimizer,
+                          scheduler = scheduler,
+                          save_path = save_path,  
+                          part_loss = part_loss,
+                          device = device,
+                          version = 'mb_conv3_foot_colour_nowei_CA',
+                          categorical = part_based,
+                          resume=False,
+                          loss_train = None,
+                          loss_test=None,
+                          train_attr_F1=None,
+                          test_attr_F1=None,
+                          train_attr_acc=None,
+                          test_attr_acc=None,  
+                          stoped_epoch=None)
 #%%
-
+if args.mode == 'eval':
+    metrics_result = dict_evaluating_multi_branch(attr_net = attr_net,
+                                   test_loader = test_loader,
+                                   save_path = save_path,
+                                   device = device,
+                                   part_loss = part_loss,
+                                   categorical = part_based,
+                                   loss_train=None,
+                                   loss_test=None,
+                                   train_attr_F1=None,
+                                   test_attr_F1=None,
+                                   train_attr_acc=None,
+                                   test_attr_acc=None,
+                                   stoped_epoch=None)
 
 
