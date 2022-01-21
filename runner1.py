@@ -48,6 +48,7 @@ def parse_args():
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
     parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17]',default='./checkpoints/osnet_x1_0_market.pth')
     parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network',default='./results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/best_attr_net.pth')
+    parser.add_argument('--save_attr_metrcis',type = str,help = 'path to save attributes metrics',default='./results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/attr_metrics.xlsx')
     args = parser.parse_args()
     return args
 
@@ -314,15 +315,22 @@ if args.mode == 'eval':
 
     total_metrics(attr_metrics[0])
     iou_result = attr_metrics[1]
+    print('\n','the mean of iou is: ',str(iou_result.mean().item()))
     if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':            
         iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
     else:    
         iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=test_img_path, attr=attr, num_worst = args.num_worst)
  
     metrics_result = attr_metrics[0][:5]
-    attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T, index=attr['names'], columns=['precision','recall','accuracy','f1','MA'])
-
-path_out_body_color_detail = './results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/attr_metrics.xlsx'
-
-attr_metrics_pd.to_excel(path_out_attr)
+    attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T,
+                                   index=attr['names'], columns=['precision','recall','accuracy','f1','MA'])
+    attr_metrics_pd.to_excel(args.save_attr_metrcis)
+    
+    mean_metrics = attr_metrics[0][5:]
+    mean_metrics.append(iou_result.mean().item())
+    mean_metrics_pd = pd.DataFrame(data = np.array(mean_metrics), index=['precision','recall','accuracy','f1','MA', 'IOU'])
+    peices = args.save_attr_metrcis.split('/')
+    peices[-1] = 'mean_metrics.xlsx'
+    path_mean_metrcis = '/'.join(peices)
+    attr_metrics_pd.to_excel(path_mean_metrcis)
 #%%
