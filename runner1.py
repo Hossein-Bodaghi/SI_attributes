@@ -305,10 +305,30 @@ if args.mode == 'eval':
 
     for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
         if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
-            metrics_print(attr_metrics, attr['names'], metricss=metric)
+            metrics_print(attr_metrics[0], attr['names'], metricss=metric)
         else:
-            metrics_print(attr_metrics, attr_test['names'], metricss='precision')
+            metrics_print(attr_metrics[0], attr_test['names'], metricss='precision')
             
-    total_metrics(attr_metrics)
-# part_metrics_np = part_metrics.numpy()    
-# attr_metrics_np = attr_metrics.numpy()  
+    total_metrics(attr_metrics[0])
+    iou_result = attr_metrics[1]
+
+
+
+from delivery import data_delivery
+from torchvision import transforms
+import torch
+from loaders import get_image
+from utils import plot, augmentor, LGT, RandomErasing
+import os
+
+num_worst = 5
+min_sort_iou_idx = iou_result.sort()[1][:num_worst]
+min_sort_iou_result = iou_result.sort()[0][:num_worst]
+
+img_idx = valid_idx[min_sort_iou_idx]
+# make paths 
+img_paths = [os.path.join(main_path, attr['img_names'][i]) for i in torch.randint(0, 25258, (num_worst,1))]
+# load path as images
+orig_imgs = [get_image(addr,256, 128) for addr in img_paths]
+# plot augmented images
+plot(orig_imgs, with_orig=False)

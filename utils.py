@@ -204,7 +204,7 @@ def get_n_params(model):
     return pp
 
 
-def plot(imgs, orig_img, with_orig=True, row_title=None, **imshow_kwargs):
+def plot(imgs, orig_img=None, with_orig=True, row_title=None, iou_result=None, **imshow_kwargs):
     if not isinstance(imgs[0], list):
         # Make a 2d grid even if there's just 1 row
         imgs = [imgs]
@@ -218,6 +218,8 @@ def plot(imgs, orig_img, with_orig=True, row_title=None, **imshow_kwargs):
             ax = axs[row_idx, col_idx]
             ax.imshow(np.asarray(img), **imshow_kwargs)
             ax.set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+            if iou_result is not None:
+                ax.set(title=str(iou_result[col_idx]))
 
     if with_orig:
         axs[0, 0].set(title='Original image')

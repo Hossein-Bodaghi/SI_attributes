@@ -12,7 +12,7 @@ this is Hossein Bodaghies thesis
 import torch
 import numpy as np
 import torch.nn as nn
-from metrics import tensor_metrics
+from metrics import tensor_metrics, IOU
 import os
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -429,5 +429,6 @@ def dict_evaluating_multi_branch(attr_net,
             targets.append(y_target.to('cpu'))
     predicts = torch.cat(predicts)
     targets = torch.cat(targets)   
+    iou_result = IOU(predicts, targets)
     test_attr_metrics = tensor_metrics(y_target.float(), y_attr)           
-    return test_attr_metrics
+    return [test_attr_metrics, iou_result]
