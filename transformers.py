@@ -306,51 +306,51 @@ class CoAtNet(nn.Module):
         
         #stage0
         y=self.mlp0(self.s0(x))
-        print('size of mlp0: ', y.shape, '\n')
+        # print('size of mlp0: ', y.shape, '\n')
         
         y=self.maxpool2d(y)
-        print('size of maxpool2d0: ', y.shape, '\n')
+        # print('size of maxpool2d0: ', y.shape, '\n')
         
         #stage1
         y=self.mlp1(self.s1(y))
-        print('size of mlp1: ', y.shape, '\n')
+        # print('size of mlp1: ', y.shape, '\n')
         
         y=self.maxpool2d(y)
-        print('size of maxpool2d1: ', y.shape, '\n')
+        # print('size of maxpool2d1: ', y.shape, '\n')
         
         #stage2
         y=self.mlp2(self.s2(y))
-        print('size of mlp2: ', y.shape, '\n')
+        # print('size of mlp2: ', y.shape, '\n')
         
         y=self.maxpool2d(y)
-        print('size of maxpool2d2: ', y.shape, '\n')
+        # print('size of maxpool2d2: ', y.shape, '\n')
         
         #stage3
         y=y.reshape(B,self.out_chs[2],-1).permute(0,2,1) #B,N,C
-        print('size of reshape0: ', y.shape, '\n')
+        # print('size of reshape0: ', y.shape, '\n')
         
         y=self.mlp3(self.s3(y,y,y))
-        print('size of mlp3: ', y.shape, '\n')
+        # print('size of mlp3: ', y.shape, '\n')
         
         y=self.maxpool1d(y.permute(0,2,1)).permute(0,2,1)
-        print('size of maxpool1d1: ', y.shape, '\n')
+        # print('size of maxpool1d1: ', y.shape, '\n')
         
         #stage4
-        a = self.s4(y,y,y)
-        print('size of mlp4: ', a.shape, '\n')
+        # a = self.s4(y,y,y)
+        # print('size of mlp4: ', a.shape, '\n')
         y=self.mlp4(self.s4(y,y,y))
         
-        print('size of mlp4: ', y.shape, '\n')
+        # print('size of mlp4: ', y.shape, '\n')
         
         y=self.maxpool1d(y.permute(0,2,1))
-        print('size of maxpool1d2: ', y.shape, '\n')
+        # print('size of maxpool1d2: ', y.shape, '\n')
         N=y.shape[-1]
         
         y=y.reshape(B,self.out_chs[4],int(sqrt(N)),int(sqrt(N)))
-        print('size of reshape: ', y.shape, '\n')
+        # print('size of reshape: ', y.shape, '\n')
         return y
-x=torch.randn(1,3,224,224)
-coatnet=CoAtNet(3,224)
-y=coatnet(x)
-print(y.shape)
+# x=torch.randn(1,3,224,224)
+# coatnet=CoAtNet(3,224)
+# y=coatnet(x)
+# print(y.shape)
     
