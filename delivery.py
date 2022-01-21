@@ -76,53 +76,52 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
                         'leg_colour':attr_vec[:,8:15],
                         'body_colour':attr_vec[:,15:22]}) 
             
-    elif need_attr:
-        if dataset == 'CA_Market':
-            output.update({'names' : ['gender','cap','hairless','short hair','long hair',
-                                      'knot', 'h_colorful', 'h_black','Tshirt_shs', 'shirt_ls','coat',
-                                      'top','simple/patterned','b_w','b_r','b_y','b_green','b_b',
-                                      'b_gray','b_p','b_black','backpack', 'shoulder bag','hand bag','no bag','pants',
-                                      'short','skirt','l_w','l_r','l_br','l_y','l_green','l_b',
-                                      'l_gray','l_p','l_black','shoes','sandal',
-                                      'hidden','no color','f_w', 'f_colorful','f_black', 'young', 
-                                      'teenager', 'adult', 'old']})
-        elif dataset == 'Market_attribute':
-            output.update({'names' : ['young', 'teenager', 'adult' ,'old', 'backpack', 'shoulder-bag', 
-                                      'hand-bag', 'down-black','down-blue','down-brown',
-                                      'down-gray','down-green','down-pink','down-purple','down-white',
-                                      'down-yellow','up-black','up-blue','up-green','up-gray', 
-                                      'up-purple','up-red','up-white','up-yellow','lower-body type', 
-                                      'lower-body length','sleeve-length','hair-length','hat ','gender']})
-        elif dataset == 'Duke_attribute':
-            output.update({'names' : ['backpack','shoulder_bag','hand_bag','boots','gender','hat',
-                                      'shoes_color','upper-body_length','downblack','downwhite',
-                                      'downred','downgray','downblue','downgreen','downbrown',
-                                      'upblack','upwhite','upred','uppurple','upgray',
-                                      'upblue','upgreen','upbrown']})
-        elif dataset == "CA_Duke":
-            output.update({'names' : ['gender','hairless',"short hair","longhair(straight)","knot","unvisible(hair)",
-                                      "burnette","blonde", "black",'no-color',
-                                      'cap',"snowcap","hoodiecap","no cap","unvisible(cap)",
-                                      "c_white","c_blue","c_green","c_red","c_brown","c_yellow","c_gray","c_black",'no-color', 
-                                      "T-shirt/shirt","jacket/sweatshirt","overcoat","hoodie",
-                                      "b_white","b_purple","b_pink","b_blue","b_green","b_red","b_brown","b_yellow","b_gray","b_black", 
-                                      "backpack","bag/handbag",'no bags',
-                                      "umbrella(open)","umbrella(closed)","no umbrella",
-                                      "beard","shaved","hidden",
-                                      "pants","shorts","skirt","unvisible",
-                                      "l_white","l_blue","l_green","l_red","l_brown","l_yellow","l_gray","l_black",'no-color',
-                                      'formal shoes',"sneakers","high boots",'hidden',
-                                      "f_white","f_colorful","f_brown","f_gray","f_black",'no-color',
-                                      "sunglasses","headphone","gloves","scarf","tie",
-                                      "front/back",
-                                      "white", "black", "unkown"
-                                      ]})
-        elif dataset == "PA100k":
-            output.update({'names': ['Female','AgeOver60','Age18-60','AgeLess18','Front','Side','Back',
-                                     'Hat','Glasses','HandBag','ShoulderBag','Backpack','HoldObjectsInFront',
-                                     'ShortSleeve','LongSleeve','UpperStride','UpperLogo','UpperPlaid',
-                                     'UpperSplice','LowerStripe','LowerPattern','LongCoat','Trousers',
-                                     'Shorts','Skirt&Dress','boots']})
+    if dataset == 'CA_Market':
+        output.update({'names' : ['gender','cap','hairless','short hair','long hair',
+                                  'knot', 'h_colorful', 'h_black','Tshirt_shs', 'shirt_ls','coat',
+                                  'top','simple/patterned','b_w','b_r','b_y','b_green','b_b',
+                                  'b_gray','b_p','b_black','backpack', 'shoulder bag','hand bag','no bag','pants',
+                                  'short','skirt','l_w','l_r','l_br','l_y','l_green','l_b',
+                                  'l_gray','l_p','l_black','shoes','sandal',
+                                  'hidden','no color','f_w', 'f_colorful','f_black', 'young', 
+                                  'teenager', 'adult', 'old']})
+    elif dataset == 'Market_attribute':
+        output.update({'names' : ['young', 'teenager', 'adult' ,'old', 'backpack', 'shoulder-bag', 
+                                  'hand-bag', 'down-black','down-blue','down-brown',
+                                  'down-gray','down-green','down-pink','down-purple','down-white',
+                                  'down-yellow','up-black','up-blue','up-green','up-gray', 
+                                  'up-purple','up-red','up-white','up-yellow','lower-body type', 
+                                  'lower-body length','sleeve-length','hair-length','hat ','gender']})
+    elif dataset == 'Duke_attribute':
+        output.update({'names' : ['backpack','shoulder_bag','hand_bag','boots','gender','hat',
+                                  'shoes_color','upper-body_length','downblack','downwhite',
+                                  'downred','downgray','downblue','downgreen','downbrown',
+                                  'upblack','upwhite','upred','uppurple','upgray',
+                                  'upblue','upgreen','upbrown']})
+    elif dataset == "CA_Duke":
+        output.update({'names' : ['gender','hairless',"short hair","longhair(straight)","knot","unvisible(hair)",
+                                  "burnette","blonde", "black",'no-color',
+                                  'cap',"snowcap","hoodiecap","no cap","unvisible(cap)",
+                                  "c_white","c_blue","c_green","c_red","c_brown","c_yellow","c_gray","c_black",'no-color', 
+                                  "T-shirt/shirt","jacket/sweatshirt","overcoat","hoodie",
+                                  "b_white","b_purple","b_pink","b_blue","b_green","b_red","b_brown","b_yellow","b_gray","b_black", 
+                                  "backpack","bag/handbag",'no bags',
+                                  "umbrella(open)","umbrella(closed)","no umbrella",
+                                  "beard","shaved","hidden",
+                                  "pants","shorts","skirt","unvisible",
+                                  "l_white","l_blue","l_green","l_red","l_brown","l_yellow","l_gray","l_black",'no-color',
+                                  'formal shoes',"sneakers","high boots",'hidden',
+                                  "f_white","f_colorful","f_brown","f_gray","f_black",'no-color',
+                                  "sunglasses","headphone","gloves","scarf","tie",
+                                  "front/back",
+                                  "white", "black", "unkown"
+                                  ]})
+    elif dataset == "PA100k":
+        output.update({'names': ['Female','AgeOver60','Age18-60','AgeLess18','Front','Side','Back',
+                                 'Hat','Glasses','HandBag','ShoulderBag','Backpack','HoldObjectsInFront',
+                                 'ShortSleeve','LongSleeve','UpperStride','UpperLogo','UpperPlaid',
+                                 'UpperSplice','LowerStripe','LowerPattern','LongCoat','Trousers',
+                                 'Shorts','Skirt&Dress','boots']})
 
             
     return output

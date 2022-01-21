@@ -28,27 +28,25 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute]', default='CA_Market')
-    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
-    parser.add_argument('--main_path',type = str,help = 'if your dataset is CA_Market or Market_attribute our work use gt_bbox folder of dataset',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='CA_Market')
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
     parser.add_argument('--main_path',type = str,help = 'image_path = [Market1501/Market-1501-v15.09.15/gt_bbox/,PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
     parser.add_argument('--test_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_test')
-    parser.add_argument('--attr_path',type = str,help = '[CA_Market,PA100k_all_with_id,Market_attribute_with_id]',default = './attributes/CA_Market.npy' )
+    parser.add_argument('--attr_path',type = str,help = '[CA_Market_with_id, PA100k_all_with_id, Market_attribute_with_id]',default = './attributes/CA_Market_with_id.npy' )
     parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id path , Duke_attribute_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
     parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')    
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
-                                                           +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='body_type')
-    parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 3)
+                                                           +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
+    parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 1)
     parser.add_argument('--lr',type = int,help = 'learning rate',default = 3.5e-5)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting None, effective',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
     parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17]',default='./checkpoints/osnet_x1_0_market.pth')
-    parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network',default=None)
+    parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network',default='./results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/best_attr_net.pth')
     args = parser.parse_args()
     return args
 
@@ -307,8 +305,10 @@ if args.mode == 'eval':
 
     for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
         if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
-            metrics_print(attr_metrics, attr['names'], metricss='precision')
+            metrics_print(attr_metrics, attr['names'], metricss=metric)
         else:
             metrics_print(attr_metrics, attr_test['names'], metricss='precision')
             
     total_metrics(attr_metrics)
+# part_metrics_np = part_metrics.numpy()    
+# attr_metrics_np = attr_metrics.numpy()  

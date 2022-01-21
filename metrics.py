@@ -94,9 +94,9 @@ def tensor_metrics(target,predict):
         recall[j] = true_positive[j]/(true_positive[j]+false_negative[j]+eps)
         accuracy[j] = (true_positive[j]+true_negative[j])/(true_positive[j]+false_negative[j]+true_negative[j]+false_positive[j]+eps)
         f1[j] = 2*(precision[j]*recall[j])/(precision[j]+recall[j]+eps)       
-        mean_accuracy[j] = true_positive[j]/(true_positive[j]+false_negative[j]+eps) + true_negative[j]/(true_negative[j]+false_positive[j])
+        mean_accuracy[j] = true_positive[j]/(true_positive[j]+false_negative[j]+eps) + true_negative[j]/(true_negative[j]+false_positive[j]+eps)
     mean_accuracy = mean_accuracy/2
-    mean_accuracy_total = torch.mean(mean_accuracy)
+    mean_accuracy_total = torch.mean(mean_accuracy).item()
         
     return [precision,
             recall,
@@ -242,7 +242,30 @@ def category_metrics(target, predict):
     acc = t_p / len(target)
     return acc
     
+class instance_metrics(torch.nn.Module):
     
+    def __init__(self, weights=None):
+        super(instance_metrics,  self).__init__()
+        self.weights = weights
+        self.eps=1e-6
+    def forward(self, y_true, y_pred):
+        result = {}
+        true_positives = torch.sum( (y_true * y_pred))
+        predicted_positives = torch.sum(y_pred)
+        possible_positives = torch.sum(y_true)
+        precision = true_positives / (predicted_positives + self.eps)
+        recall = true_positives / (possible_positives + self.eps)
+        F1 = 2 * ( (precision * recall) / (precision + recall) )    
+        result.update({'precision':precision, 'recall':recall, 'F1':F1})
+        return result
+    
+def IOU(y_pred, y_true):
+    
+    intersection = torch.sum(torch.abs(y_true * y_pred), axis=-1)
+    union = torch.sum(y_true,-1) + torch.sum(y_pred,-1) - intersection
+    IOU = intersection / union    
+    
+    return IOU
 
 # distances: 'euclidean' , 'cosin_similarity'
 # takes two dictionary that should containe ['id']

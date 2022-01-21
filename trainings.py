@@ -28,6 +28,19 @@ lis2tensor: takes a list containing torch tensors and return a torch matrix
 id_onehot: takes id tensors and make them one hoted 
 '''
 
+class IOU_Loss(torch.nn.Module):
+    
+    def __init__(self):
+        super(IOU_Loss,  self).__init__()
+        self.eps=1e-6
+    def forward(self, y_true, y_pred):
+        intersection = torch.sum(torch.abs(y_true * y_pred), axis=-1)
+        union = torch.sum(y_true,-1) + torch.sum(y_pred,-1) - intersection
+        IOU = intersection / union
+      
+        Loss = - torch.mean( 1 - IOU )            
+        return Loss  
+
 def tensor_max(tensor):
 
     idx = torch.argmax(tensor, dim=1, keepdim=True)
@@ -92,7 +105,7 @@ def Market_part_loss_calculator(out_data, data, part_loss, categorical = True):
     return attr_loss, loss_total
 
 
-def CA_target_attributes_12(out_data, data, part_loss, tensor_max = False, categorical = True):
+def CA_target_attributes_12(out_data, data, part_loss, need_tensor_max = False, categorical = True):
     'calculte y_attr and y_target for categorical and vectorize formats'
     if categorical:
         m = 0
@@ -115,7 +128,7 @@ def CA_target_attributes_12(out_data, data, part_loss, tensor_max = False, categ
                     y_target = data[key]
                 else:
                     y_target = torch.cat((y_target, data[key]), dim = 1)
-                if tensor_max:
+                if need_tensor_max:
                     y = tensor_max(out_data[key])
                 else:
                     y = tensor_thresh(out_data[key])
@@ -131,7 +144,7 @@ def CA_target_attributes_12(out_data, data, part_loss, tensor_max = False, categ
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
             else :
                 out_data[key] = torch.sigmoid(out_data[key])
-                if tensor_max:
+                if need_tensor_max:
                     y = tensor_max(out_data[key])
                 else:
                     y = tensor_thresh(out_data[key])
@@ -411,7 +424,7 @@ def dict_evaluating_multi_branch(attr_net,
                 
             # forward step
             out_data = attr_net.forward(data['img'])           
-            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, categorical=categorical)
+            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=True, categorical=categorical)
             predicts.append(y_attr.to('cpu'))
             targets.append(y_target.to('cpu'))
     predicts = torch.cat(predicts)

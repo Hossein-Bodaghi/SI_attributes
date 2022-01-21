@@ -8,9 +8,6 @@ Created on Sun Jul  4 18:34:12 2021
 
 #%%
 import torchreid
-from delivery import data_delivery 
-from models import my_load_pretrain,MyOsNet,feature_model,MyOsNet2, CA_market_model2
-from loaders import MarketLoader4, Market_folder_Loader
 from metrics import tensor_metrics, boolian_metrics, tensor_metrics_detailes
 import time
 import os
@@ -18,10 +15,6 @@ import torch
 import torch.nn as nn 
 from torchvision import transforms
 from torch.utils.data import DataLoader
-import argparse
-from HydraPlus.lib.AF import AF2
-from HydraPlus.lib.MNet import MNet2
-from HydraPlus.lib.Hydraplus import HP2
 
 # import numpy as np
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -231,7 +224,7 @@ def metrics_print(attr_metrics, attr_colomns, metricss='precision'):
     elif metricss=='f1': n = 3 
     elif metricss=='mean_accuracy': n = 4  
     
-    print('the result of',metricss+''+'\n')
+    print('\n'+'the result of',metricss+'')
     non_zeros = []
     for idx, m in enumerate(attr_colomns):
         if attr_metrics[n][idx].item() == 0:
@@ -243,6 +236,7 @@ def metrics_print(attr_metrics, attr_colomns, metricss='precision'):
     mean = sum(non_zeros)/len(non_zeros)
     print(idx+1, ')', 'mean_nonzero', '-->', mean) 
     print(idx+1, ')', 'mean_withzero', '-->', torch.mean(attr_metrics[n]).item())
+
 
 def total_metrics(attr_metrics): 
     metrices = ['precision_total',
@@ -296,7 +290,6 @@ def change2list(torch_tensor):
 # for i in range(9):
     
 # #%%
-# import pandas as pd
 
 
 # part_metrics_np = part_metrics.numpy()    
