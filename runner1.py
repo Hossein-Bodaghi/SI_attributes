@@ -7,7 +7,7 @@ Created on Tue Jan 11 20:07:29 2022
 """
 #%%
 # repository imports
-from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT
+from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot
 from trainings import dict_training_multi_branch, dict_evaluating_multi_branch
 from models import mb12_CA_build_model, attributes_model
 from evaluation import metrics_print, total_metrics
@@ -41,6 +41,7 @@ def parse_args():
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
     parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 1)
+    parser.add_argument('--num_worst',type = int,help = 'to plot how many of the worst images in eval mode',default = 10)
     parser.add_argument('--lr',type = int,help = 'learning rate',default = 3.5e-5)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting None, effective',default='None')
@@ -95,7 +96,7 @@ else:
                               need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
     
     train_idx = np.arange(len(attr_train['img_names']))
-    test_idx = np.arange(len(attr_test['id']))
+    test_idx = np.arange(len(attr_test['img_names']))
     valid_idx = validation_idx(test_idx)
         
     print('\n', 'train-set specifications') 
@@ -289,6 +290,8 @@ if args.mode == 'train':
     
 #%%
 if args.mode == 'eval':
+    import pandas as pd
+    
     attr_metrics = dict_evaluating_multi_branch(attr_net = attr_net,
                                    test_loader = test_loader,
                                    save_path = save_path,
@@ -308,27 +311,18 @@ if args.mode == 'eval':
             metrics_print(attr_metrics[0], attr['names'], metricss=metric)
         else:
             metrics_print(attr_metrics[0], attr_test['names'], metricss='precision')
-            
+
     total_metrics(attr_metrics[0])
     iou_result = attr_metrics[1]
+    if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':            
+        iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
+    else:    
+        iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=test_img_path, attr=attr, num_worst = args.num_worst)
+ 
+    metrics_result = attr_metrics[0][:5]
+    attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T, index=attr['names'], columns=['precision','recall','accuracy','f1','MA'])
 
+path_out_body_color_detail = './results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/attr_metrics.xlsx'
 
-
-from delivery import data_delivery
-from torchvision import transforms
-import torch
-from loaders import get_image
-from utils import plot, augmentor, LGT, RandomErasing
-import os
-
-num_worst = 5
-min_sort_iou_idx = iou_result.sort()[1][:num_worst]
-min_sort_iou_result = iou_result.sort()[0][:num_worst]
-
-img_idx = valid_idx[min_sort_iou_idx]
-# make paths 
-img_paths = [os.path.join(main_path, attr['img_names'][i]) for i in torch.randint(0, 25258, (num_worst,1))]
-# load path as images
-orig_imgs = [get_image(addr,256, 128) for addr in img_paths]
-# plot augmented images
-plot(orig_imgs, with_orig=False)
+attr_metrics_pd.to_excel(path_out_attr)
+#%%

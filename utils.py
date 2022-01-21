@@ -14,6 +14,7 @@ from PIL import Image
 import random
 import torchvision.transforms as transforms
 import torch.nn as nn
+from loaders import get_image
 
 
 def resampler(attr, clss, Most_repetition=5):
@@ -204,6 +205,8 @@ def get_n_params(model):
     return pp
 
 
+
+
 def plot(imgs, orig_img=None, with_orig=True, row_title=None, iou_result=None, **imshow_kwargs):
     if not isinstance(imgs[0], list):
         # Make a 2d grid even if there's just 1 row
@@ -219,7 +222,8 @@ def plot(imgs, orig_img=None, with_orig=True, row_title=None, iou_result=None, *
             ax.imshow(np.asarray(img), **imshow_kwargs)
             ax.set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
             if iou_result is not None:
-                ax.set(title=str(iou_result[col_idx]))
+                ax.set(title='{:.4f}'.format(iou_result[col_idx].item()))
+                ax.title.set_size(8)
 
     if with_orig:
         axs[0, 0].set(title='Original image')
@@ -230,6 +234,21 @@ def plot(imgs, orig_img=None, with_orig=True, row_title=None, iou_result=None, *
 
     plt.tight_layout()
 
+
+def iou_worst_plot(iou_result, valid_idx, main_path, attr, num_worst = 5):
+
+    min_sort_iou_idx = iou_result.sort()[1][:num_worst]
+    min_sort_iou_result = iou_result.sort()[0][:num_worst]
+    
+    img_idx = [valid_idx[idx] for idx in min_sort_iou_idx]
+    # make paths 
+    img_paths = [os.path.join(main_path, attr['img_names'][i]) for i in img_idx]
+    # load path as images
+    orig_imgs = [get_image(addr,256, 128) for addr in img_paths]
+    # plot augmented images
+    plot(orig_imgs, with_orig=False, iou_result=min_sort_iou_result)
+    
+    
 
 def augmentor(orig_img, transform, num_aug=7):
     augmented = [transform(orig_img) for i in range(num_aug)]
