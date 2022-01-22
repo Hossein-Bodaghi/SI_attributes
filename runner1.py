@@ -29,7 +29,6 @@ torch.cuda.empty_cache()
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='CA_Market')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='Duke_attribute')
     parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
     parser.add_argument('--main_path',type = str,help = 'image_path = [Market1501/Market-1501-v15.09.15/gt_bbox/,PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
@@ -37,10 +36,7 @@ def parse_args():
     parser.add_argument('--attr_path',type = str,help = '[CA_Market_with_id, PA100k_all_with_id, Market_attribute_with_id]',default = './attributes/CA_Market_with_id.npy' )
     parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id path , Duke_attribute_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
     parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')    
-    parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id path , Duke_attribute_train_with_id]',default = './attributes/Duke_attribute_train_with_id.npy')
-    parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/Duke_attribute_test_with_id.npy')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')    
+    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
@@ -50,8 +46,6 @@ def parse_args():
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting None, effective',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
-    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17]',default='./checkpoints/osnet_x1_0_market.pth')
-    parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network',default=None)
     parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_market.pth')
     parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network[./results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/best_attr_net.pth]',default= None)
     parser.add_argument('--save_attr_metrcis',type = str,help = 'path to save attributes metrics',default='./results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/attr_metrics.xlsx')
