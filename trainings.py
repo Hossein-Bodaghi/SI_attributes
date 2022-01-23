@@ -338,7 +338,7 @@ def dict_training_multi_branch(num_epoch,
                                                                 categorical=categorical)
                 loss_parts_test += attr_loss
                 
-                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)
+                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
 
                 test_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 ft_test.append(test_attr_metrics[-2])
