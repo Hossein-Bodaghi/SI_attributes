@@ -150,7 +150,9 @@ def CA_target_attributes_12(out_data, data, part_loss, need_tensor_max = False, 
                     y = tensor_thresh(out_data[key])
             if m == 0:
                 y_attr = y
+                y_target = data[key]
             else :
+                y_target = torch.cat((y_target, data[key]), dim = 1)
                 y_attr = torch.cat(y_attr, y, dim=1)
             m += 1
     return y_attr, y_target
@@ -282,7 +284,7 @@ def dict_training_multi_branch(num_epoch,
 
                 loss_parts_train += attr_loss
 
-                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss)
+                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
                 # evaluation    
                 train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 # append results
@@ -412,6 +414,43 @@ def dict_evaluating_multi_branch(attr_net,
                                test_attr_acc=None,
                                stoped_epoch=None):
 
+    attr_net = attr_net.to(device)
+    # evaluation:     
+    attr_net.eval()
+    with torch.no_grad():
+        targets = []
+        predicts = []
+        for idx, data in enumerate(test_loader):
+            
+            for key, _ in data.items():
+                data[key] = data[key].to(device)
+                
+            # forward step
+            out_data = attr_net.forward(data['img'])           
+            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+            predicts.append(y_attr.to('cpu'))
+            targets.append(y_target.to('cpu'))
+    predicts = torch.cat(predicts)
+    targets = torch.cat(targets)   
+    iou_result = IOU(predicts, targets)
+    test_attr_metrics = tensor_metrics(y_target.float(), y_attr)           
+    return [test_attr_metrics, iou_result]
+
+def take_out_multi_branch(attr_net,
+                               test_loader,
+                               save_path,
+                               device,
+                               part_loss,
+                               categorical,
+                               loss_train=None,
+                               loss_test=None,
+                               train_attr_F1=None,
+                               test_attr_F1=None,
+                               train_attr_acc=None,
+                               test_attr_acc=None,
+                               stoped_epoch=None):
+
+    attr_net = attr_net.to(device)
     # evaluation:     
     attr_net.eval()
     with torch.no_grad():
@@ -429,6 +468,5 @@ def dict_evaluating_multi_branch(attr_net,
             targets.append(y_target.to('cpu'))
     predicts = torch.cat(predicts)
     targets = torch.cat(targets)   
-    iou_result = IOU(predicts, targets)
-    test_attr_metrics = tensor_metrics(y_target.float(), y_attr)           
-    return [test_attr_metrics, iou_result]
+         
+    return [predicts, targets]

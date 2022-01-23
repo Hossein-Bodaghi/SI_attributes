@@ -28,15 +28,15 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='Duke_attribute')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='CA_Market')
     parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
     parser.add_argument('--main_path',type = str,help = 'image_path = [Market1501/Market-1501-v15.09.15/gt_bbox/,PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
     parser.add_argument('--test_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_test')
     parser.add_argument('--attr_path',type = str,help = '[CA_Market_with_id, PA100k_all_with_id, Market_attribute_with_id]',default = './attributes/CA_Market_with_id.npy' )
-    parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id path , Duke_attribute_train_with_id]',default = './attributes/Duke_attribute_train_with_id.npy')
-    parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/Duke_attribute_test_with_id.npy')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')    
+    parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id path , Duke_attribute_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
+    parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
+    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
@@ -246,6 +246,8 @@ if part_based:
                       sep_conv_size = 64,
                       feature_selection = None)
 else:
+    attr_net = attributes_model(model, feature_dim = 512, attr_dim = 48)
+
     if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
         attr_dim = len(attr['names'])
     else:
@@ -285,7 +287,7 @@ if args.mode == 'train':
                           save_path = save_path,  
                           part_loss = part_loss,
                           device = device,
-                          version = 'check_net_with_CA_Market_alaki',
+                          version = 'simple_market_CA',
                           categorical = part_based,
                           resume=False,
                           loss_train = None,
@@ -340,4 +342,4 @@ if args.mode == 'eval':
     peices[-1] = 'mean_metrics.xlsx'
     path_mean_metrcis = '/'.join(peices)
     mean_metrics_pd.to_excel(path_mean_metrcis)
-#%%
+
