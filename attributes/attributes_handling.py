@@ -267,19 +267,25 @@ import numpy as np
 import os
 import pickle
 
-#main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/DUKMTMC/Dataset/dukemtmc/DukeMTMC-reID/DukeMTMC-reID/bounding_box_train/'
-main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/DUKMTMC/Dataset/dukemtmc/DukeMTMC-reID/DukeMTMC-reID/bounding_box_test/'
+# #main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/DUKMTMC/Dataset/dukemtmc/DukeMTMC-reID/DukeMTMC-reID/bounding_box_train/'
+# main_path = '/home/taarlab/anaconda3/envs/torchreid/deep-person-reid/my_osnet/DUKMTMC/Dataset/dukemtmc/DukeMTMC-reID/DukeMTMC-reID/bounding_box_test/'
 
-all_attr_path_tr = '/home/taarlab/SI_attributes/attributes/CA_Duke/trainlabel_final.pkl'
-attributes_dict = np.load(all_attr_path_tr,allow_pickle=True)
+# all_attr_path_tr = '/home/taarlab/SI_attributes/attributes/CA_Duke/trainlabel_final.pkl'
+# attributes_dict = np.load(all_attr_path_tr,allow_pickle=True)
 
-attributes2 = np.array([attributes_dict[pth] for pth in attributes_dict])
+# attributes2 = np.array([attributes_dict[pth] for pth in attributes_dict])
 
-test_attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/labeled test/final_attr_org.npy'
-attributes = np.load(test_attr_path)    
+# test_attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/labeled test/final_attr_org.npy'
+# attributes = np.load(test_attr_path)    
 #attr_path = '/home/taarlab/SI_attributes/attributes/CA_Duke/final_attr_org.npy'
 #ttributes =  np.load(attr_path)
 
+path_attr = '/home/hossein/Downloads/generated/final_attr_org.npy'
+path_stop = '/home/hossein/Downloads/generated/final_stop.npy'
+stop_idx = np.load(path_stop)
+attributes = np.load(path_attr)[:stop_idx]
+
+main_path = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_test'
 img_names = os.listdir(main_path)
 img_names.sort()
 img_name = img_names[:len(attributes)]
@@ -407,7 +413,7 @@ for i in range(len(attr_names_old)):
 
 idd = np.reshape(np.array(id_), (len(id_),1))
 attr_with_id = np.append(atr_new, idd, axis=1)
-np.save('/home/taarlab/SI_attributes/attributes/CA_Duke_test_with_id.npy',attr_with_id)
+np.save('/home/hossein/SI_attributes/attributes/CA_Duke_test_with_id.npy',attr_with_id)
 
 #%%
 """

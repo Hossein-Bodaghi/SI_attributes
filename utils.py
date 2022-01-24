@@ -113,7 +113,7 @@ def part_data_delivery(weights, device, dataset='CA_Market'):
     ----------
     dataset : ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute']
         
-    weiights : should be a dict of required parts and their weights        
+    weights : should be a dict of required parts and their weights        
 
     Returns
     -------
@@ -154,6 +154,8 @@ def part_data_delivery(weights, device, dataset='CA_Market'):
                 loss_dict.update({key:nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
         
     return loss_dict
+
+
 def load_attributes(path_attr):
     attr_vec_np = np.load(path_attr)# loading attributes
         # attributes
