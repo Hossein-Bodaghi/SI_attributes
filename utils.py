@@ -17,6 +17,52 @@ import torch.nn as nn
 from loaders import get_image
 
 
+def common_attr(predicts, targets):
+    '''ca_market & pa100k 
+      CA_Market	PA100k
+     0      0	0
+     1      10, 11,12	7
+     2      70	8
+     3      39	9,10
+     4      26	21
+     5      47	22
+     6      48	23
+     7      49	24
+     8      62	25
+     9      38  11
+    '''
+    if predicts.shape[1] == 79 and targets.shape[1] == 26:
+        attr_names = ['gender', 'Hat','Glasses','bag','LongCoat','pants','shorts', 'skirt', 'boots', 'Backpack']
+        
+        new_predicts = torch.zeros((predicts.shape[0], 10))
+        new_targets = torch.zeros((targets.shape[0], 10))
+        
+        new_predicts[:, 0] = predicts[:,0]
+        new_targets[:, 0] = targets[:,0]            
+
+        new_predicts[:, 1] = (predicts[:,10] + predicts[:,11] + predicts[:,12] )/3
+
+        new_targets[:, 1] = targets[:,7]  
+
+        new_predicts[:, 2] = predicts[:, 70]
+        new_targets[:, 2] = targets[:, 8]   
+
+        new_predicts[:, 3] = predicts[:, 39]
+        new_targets[:, 3] = (targets[:,9]+targets[:,10])/2
+
+        new_predicts[:, 4] = predicts[:, 26]
+        new_targets[:, 4] = targets[:, 21]  
+
+        new_predicts[:,5:8] = predicts[:, 47:50]
+        new_targets[:,5:8] = targets[:, 22:25]             
+
+        new_predicts[:,8] = predicts[:, 62]
+        new_targets[:,8] = targets[:, 25]    
+
+        new_predicts[:,9] = predicts[:, 38]
+        new_targets[:,9] = targets[:, 11]  
+    return new_predicts, new_targets, attr_names
+
 def resampler(attr, clss, Most_repetition=5):
     max_num = max(sum(attr[clss]))
     raw_len = len(attr['img_names'])
@@ -153,6 +199,15 @@ def part_data_delivery(weights, device, dataset='CA_Market'):
             else:
                 loss_dict.update({key:nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
         
+    elif dataset == 'PA100k':
+        
+        for key in weights:
+            if key == 'bags' or key == 'leg_colour' or key == 'body_colour':
+                loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
+                
+            else:
+                loss_dict.update({key:nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
+
     return loss_dict
 
 

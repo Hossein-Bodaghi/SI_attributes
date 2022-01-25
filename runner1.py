@@ -7,11 +7,12 @@ Created on Tue Jan 11 20:07:29 2022
 """
 #%%
 # repository imports
-from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot
-from trainings import dict_training_multi_branch, dict_evaluating_multi_branch
+from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot, common_attr
+from trainings import dict_training_multi_branch, dict_evaluating_multi_branch, take_out_multi_branch
 from models import mb12_CA_build_model, attributes_model
 from evaluation import metrics_print, total_metrics
 from delivery import data_delivery
+from metrics import tensor_metrics, IOU
 from loaders import CA_Loader
 # torch requirements
 from torch.utils.data import DataLoader
@@ -28,12 +29,12 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='CA_Duke')
-    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
-    parser.add_argument('--main_path',type = str,help = 'image_path = [Market1501/Market-1501-v15.09.15/gt_bbox/,PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='PA100k')
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
+    parser.add_argument('--main_path',type = str,help = 'image_path = [./Market1501/Market-1501-v15.09.15/gt_bbox/,./PA-100K/release_data/release_data/]',default = './datasets/PA-100K/release_data/release_data/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
     parser.add_argument('--test_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_test')
-    parser.add_argument('--attr_path',type = str,help = '[CA_Market_with_id, PA100k_all_with_id, Market_attribute_with_id]',default = './attributes/CA_Market_with_id.npy' )
+    parser.add_argument('--attr_path',type = str,help = '[CA_Market_with_id, PA100k_all_with_id, Market_attribute_with_id]',default = './attributes/PA100k_all_with_id.npy' )
     parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id, Duke_attribute_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
     parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id, CA_Duke_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')       
@@ -46,9 +47,10 @@ def parse_args():
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting None, effective',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
-    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_market.pth')
-    parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_net multi-branch network[./results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/best_attr_net.pth]',default= None)
-    parser.add_argument('--save_attr_metrcis',type = str,help = 'path to save attributes metrics',default='./results/mb_conv3_all_bothwei_CA/mb_conv3_all_wei_CA/attr_metrics.xlsx')
+    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_msmt17.pth')
+    parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_nets [ain_osnet_CA_Duke,simple_osnet_Duke_attribute,simple_osnet_CA_Duke]',default= './results/simple_osnet_CA_Duke/best_attr_net.pth')
+    parser.add_argument('--save_attr_metrcis',type = str,help = 'path to save attributes metrics',default='./results/simple_osnet_CA_Duke/attr_metrics.xlsx')
+    parser.add_argument('--cross_domain',type = str,help = 'y/n',default='y')
     args = parser.parse_args()
     return args
 
@@ -59,6 +61,7 @@ args = parse_args()
 
 ''' Delivering data as attr dictionaries '''
 part_based = True if args.training_strategy == 'categorized' else False # if categotized, for each part one tesor will be genetrated
+cross_domain = True if args.cross_domain == 'y' else False # if categotized, for each part one tesor will be genetrated
                                                                         # elif vectorize, only an attribute vector will be generated 
 
 if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
@@ -253,7 +256,10 @@ else:
         attr_dim = len(attr['names'])
     else:
         attr_dim = len(attr_train['names'])
-    attr_net = attributes_model(model, feature_dim = 512, attr_dim = attr_dim)
+    if cross_domain:
+        attr_net = attributes_model(model, feature_dim = 512, attr_dim = 79)
+    else:    
+        attr_net = attributes_model(model, feature_dim = 512, attr_dim = attr_dim)
 
 if args.trained_multi_branch is not None:
     trained_net = torch.load(args.trained_multi_branch)
@@ -303,37 +309,61 @@ if args.mode == 'train':
 if args.mode == 'eval':
     import pandas as pd
     
-    attr_metrics = dict_evaluating_multi_branch(attr_net = attr_net,
-                                   test_loader = test_loader,
-                                   save_path = save_path,
-                                   device = device,
-                                   part_loss = part_loss,
-                                   categorical = part_based,
-                                   loss_train=None,
-                                   loss_test=None,
-                                   train_attr_F1=None,
-                                   test_attr_F1=None,
-                                   train_attr_acc=None,
-                                   test_attr_acc=None,
-                                   stoped_epoch=None)
 
-    for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
-        if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
-            metrics_print(attr_metrics[0], attr['names'], metricss=metric)
+    if cross_domain:
+        predicts, targets = take_out_multi_branch(attr_net = attr_net,
+                                       test_loader = test_loader,
+                                       save_path = save_path,
+                                       device = device,
+                                       part_loss = part_loss,
+                                       categorical = part_based) 
+
+        attr_metrics = []
+        predicts, targets, attr_names = common_attr(predicts, targets)
+        attr_metrics.append(tensor_metrics(targets, predicts))
+        attr_metrics.append(IOU(predicts, targets))
+                
+    else:
+        attr_metrics = dict_evaluating_multi_branch(attr_net = attr_net,
+                                       test_loader = test_loader,
+                                       save_path = save_path,
+                                       device = device,
+                                       part_loss = part_loss,
+                                       categorical = part_based,
+                                       loss_train=None,
+                                       loss_test=None,
+                                       train_attr_F1=None,
+                                       test_attr_F1=None,
+                                       train_attr_acc=None,
+                                       test_attr_acc=None,
+                                       stoped_epoch=None)
+    
+    if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k': 
+        if cross_domain:
+            pass
         else:
-            metrics_print(attr_metrics[0], attr_test['names'], metricss='precision')
+            attr_names = attr['names']
+        main_path = main_path
+    else:
+        if cross_domain:
+            pass
+        else:
+            attr_names = attr_test['names']
+        main_path = test_img_path
+        attr = attr_test
+    for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
+        metrics_print(attr_metrics[0], attr_names, metricss=metric)
 
     total_metrics(attr_metrics[0])
     iou_result = attr_metrics[1]
     print('\n','the mean of iou is: ',str(iou_result.mean().item()))
-    if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':            
-        iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
-    else:    
-        iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=test_img_path, attr=attr, num_worst = args.num_worst)
+
+    iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
  
     metrics_result = attr_metrics[0][:5]
+
     attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T,
-                                   index=attr['names'], columns=['precision','recall','accuracy','f1','MA'])
+                                   index=attr_names, columns=['precision','recall','accuracy','f1','MA'])  
     attr_metrics_pd.to_excel(args.save_attr_metrcis)
     
     mean_metrics = attr_metrics[0][5:]
@@ -343,4 +373,49 @@ if args.mode == 'eval':
     peices[-1] = 'mean_metrics.xlsx'
     path_mean_metrcis = '/'.join(peices)
     mean_metrics_pd.to_excel(path_mean_metrcis)
+#%%
+
+# if args.mode == 'eval':
+#     import pandas as pd
+    
+#     attr_metrics = dict_evaluating_multi_branch(attr_net = attr_net,
+#                                    test_loader = test_loader,
+#                                    save_path = save_path,
+#                                    device = device,
+#                                    part_loss = part_loss,
+#                                    categorical = part_based,
+#                                    loss_train=None,
+#                                    loss_test=None,
+#                                    train_attr_F1=None,
+#                                    test_attr_F1=None,
+#                                    train_attr_acc=None,
+#                                    test_attr_acc=None,
+#                                    stoped_epoch=None)
+
+#     for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
+#         if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
+#             metrics_print(attr_metrics[0], attr['names'], metricss=metric)
+#         else:
+#             metrics_print(attr_metrics[0], attr_test['names'], metricss='precision')
+
+#     total_metrics(attr_metrics[0])
+#     iou_result = attr_metrics[1]
+#     print('\n','the mean of iou is: ',str(iou_result.mean().item()))
+#     if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':            
+#         iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
+#     else:    
+#         iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=test_img_path, attr=attr, num_worst = args.num_worst)
+ 
+#     metrics_result = attr_metrics[0][:5]
+#     attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T,
+#                                    index=attr['names'], columns=['precision','recall','accuracy','f1','MA'])
+#     attr_metrics_pd.to_excel(args.save_attr_metrcis)
+    
+#     mean_metrics = attr_metrics[0][5:]
+#     mean_metrics.append(iou_result.mean().item())
+#     mean_metrics_pd = pd.DataFrame(data = np.array(mean_metrics), index=['precision','recall','accuracy','f1','MA', 'IOU'])
+#     peices = args.save_attr_metrcis.split('/')
+#     peices[-1] = 'mean_metrics.xlsx'
+#     path_mean_metrcis = '/'.join(peices)
+#     mean_metrics_pd.to_excel(path_mean_metrcis)
 

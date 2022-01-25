@@ -191,6 +191,66 @@ saving_path = '/home/hossein/SI_attributes/results/mb_conv3_12branches_nowei_CA_
 torch.save(main_net.state_dict(), os.path.join(saving_path, 'best_attr_net.pth'))
         
         
-
         
+#%%
 
+import numpy as np
+from delivery import data_delivery
+
+
+CA_Duke_test_with_id = '/home/hossein/SI_attributes/attributes/CA_Duke_test_with_id.npy'
+CA_Market_with_id = '/home/hossein/SI_attributes/attributes/CA_Market_with_id.npy'
+Duke_attribute_test_with_id = '/home/hossein/SI_attributes/attributes/Duke_attribute_test_with_id.npy'
+Market_attribute_with_id = '/home/hossein/SI_attributes/attributes/Market_attribute_with_id.npy'
+PA100k_all_with_id = '/home/hossein/SI_attributes/attributes/PA100k_all_with_id.npy'
+
+
+duke_path = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_test'
+market_path = '/home/hossein/SI_attributes/datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
+pa100k_path = '/home/hossein/SI_attributes/datasets/PA-100K/release_data/release_data/'
+
+# [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]
+part_based = False
+attr_duke_attr = data_delivery(duke_path,
+      path_attr=Duke_attribute_test_with_id,
+      need_parts=part_based,
+      need_attr=not part_based,
+      dataset = 'Duke_attribute')
+for idx, name in enumerate(attr_duke_attr['names']):
+    print(idx, ') --> ', name)
+print('\n')
+
+attr_ca_duke = data_delivery(duke_path,
+      path_attr=CA_Duke_test_with_id,
+      need_parts=part_based,
+      need_attr=not part_based,
+      dataset = 'CA_Duke')
+for idx, name in enumerate(attr_ca_duke['names']):
+    print(idx, ') --> ', name)
+print('\n')
+
+attr_market_attr = data_delivery(market_path,
+      path_attr=Market_attribute_with_id,
+      need_parts=part_based,
+      need_attr=not part_based,
+      dataset = 'Market_attribute')
+for idx, name in enumerate(attr_market_attr['names']):
+    print(idx, ') --> ', name)
+print('\n')
+
+attr_ca_market = data_delivery(market_path,
+      path_attr=CA_Market_with_id,
+      need_parts=part_based,
+      need_attr=not part_based,
+      dataset = 'CA_Market')
+for idx, name in enumerate(attr_ca_market['names']):
+    print(idx, ') --> ', name)
+print('\n')
+    
+attr_pa100k = data_delivery(pa100k_path,
+      path_attr=PA100k_all_with_id,
+      need_parts=part_based,
+      need_attr=not part_based,
+      dataset = 'PA100k')
+for idx, name in enumerate(attr_pa100k['names']):
+    print(idx, ') --> ', name)

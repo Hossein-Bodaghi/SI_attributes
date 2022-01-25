@@ -463,7 +463,7 @@ def take_out_multi_branch(attr_net,
                 
             # forward step
             out_data = attr_net.forward(data['img'])           
-            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=True, categorical=categorical)
+            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
             predicts.append(y_attr.to('cpu'))
             targets.append(y_target.to('cpu'))
     predicts = torch.cat(predicts)

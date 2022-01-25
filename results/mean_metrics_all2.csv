@@ -1,0 +1,7 @@
+,mb_12_nowei,mb_all_nowei,mb_all_wei
+precision,0.75,0.85,0.84
+recall,0.74,0.82,0.74
+accuracy,0.89,0.93,0.91
+f1,0.75,0.84,0.78
+MA,0.72,0.63,0.60
+IOU,0.62,0.62,0.56
