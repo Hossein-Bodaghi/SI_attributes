@@ -215,7 +215,7 @@ class BCE_Loss(torch.nn.Module):
         else: 
             Sum = torch.sum( self.weights * L , -1 ) 
         Loss =  torch.mean(torch.mean(Sum))            
-        return Loss          
+        return -Loss          
 
 def part_data_delivery(weights, device, dataset='CA_Market', dynamic=False):
     '''

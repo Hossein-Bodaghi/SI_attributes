@@ -45,7 +45,7 @@ def parse_args():
     parser.add_argument('--num_worst',type = int,help = 'to plot how many of the worst images in eval mode',default = 10)
     parser.add_argument('--lr',type = float,help = 'learning rate',default = 3.5e-5)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
-    parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='effective')
+    parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='dynamic')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
     parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_market.pth')
     parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_nets [ain_osnet_CA_Duke,simple_osnet_Duke_attribute,simple_osnet_CA_Duke]',default= None)

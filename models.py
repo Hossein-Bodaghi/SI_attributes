@@ -1269,10 +1269,14 @@ class Loss_weighting(nn.Module):
         super().__init__()
         self.weights_dim = weights_dim
 
-        self.weights_lin = nn.Linear(in_features=weights_dim , out_features=weights_dim)  
-        
-    def forward(self, x):
-        weights = self.weights_lin(x) 
+        self.weights_lin1 = nn.Linear(in_features=weights_dim , out_features=weights_dim) 
+        self.weights_lin2 = nn.Linear(in_features=weights_dim , out_features=weights_dim)
+        self.relu = nn.ReLU()
+    def forward(self, weights):
+        weights = self.weights_lin1(weights) 
+        weights = self.relu(weights)
+        weights = self.weights_lin2(weights) 
+        weights = torch.sigmoid(weights)
         return weights
 
     def save_baseline(self, saving_path):
