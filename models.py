@@ -1256,3 +1256,25 @@ class attributes_model(nn.Module):
     def save_baseline(self, saving_path):
         torch.save(self.model.state_dict(), saving_path)
         print('baseline model save to {}'.format(saving_path))  
+        
+#%%
+from torchvision import transforms
+class Loss_weighting(nn.Module):
+    
+    '''
+    a model for training weights of loss functions
+    '''
+    def __init__(self, weights_dim=48):
+        
+        super().__init__()
+        self.weights_dim = weights_dim
+
+        self.weights_lin = nn.Linear(in_features=weights_dim , out_features=weights_dim)  
+        
+    def forward(self, x):
+        weights = self.weights_lin(x) 
+        return weights
+
+    def save_baseline(self, saving_path):
+        torch.save(self.weights_lin.state_dict(), saving_path)
+        print('loss_weights saved to {}'.format(saving_path)) 
