@@ -16,6 +16,7 @@ import torch.nn as nn
 from loaders import get_image
 from models import Loss_weighting
 from torchvision import transforms
+import pandas
 
 def common_attr(predicts, targets):
     '''ca_market & pa100k 
@@ -93,6 +94,24 @@ def common_attr(predicts, targets):
         new_predicts[:,9] = predicts[:, 38]
         new_targets[:,9] = targets[:, 11]          
     return new_predicts, new_targets, attr_names
+
+
+def persian_csv_format(path_table, path_save, read='excel', sep_col=1):
+    
+    if read == 'excel':
+        table1 = pandas.read_excel(path_table)
+    else:
+        table1 = pandas.read_csv(path_table)
+    columns = table1.columns
+    columns = columns[sep_col:]
+    for column in columns:
+        col_vals = table1.get(column)
+        for idx, val in enumerate(col_vals):
+            col_vals[idx] = '${:.2f}$'.format(100*val)
+        table1[column] = col_vals
+    table1.to_csv(path_save)
+    return table1
+
 
 def resampler(attr, clss, Most_repetition=5):
     max_num = max(sum(attr[clss]))

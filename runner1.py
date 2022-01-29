@@ -30,7 +30,7 @@ torch.cuda.empty_cache()
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market, Market_attribute, CA_Duke, Duke_attribute, PA100k]', default='CA_Market')
-    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
     parser.add_argument('--main_path',type = str,help = 'image_path = [./datasets/Market1501/Market-1501-v15.09.15/gt_bbox/,./datasets/PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_train')
     parser.add_argument('--test_path',type = str,help = 'path of training images. only for Dukes',default = './datasets/Dukemtmc/bounding_box_test')
@@ -48,9 +48,9 @@ def parse_args():
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='dynamic')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
     parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_market.pth')
-    parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_nets [ain_osnet_CA_Duke,simple_osnet_Duke_attribute,simple_osnet_CA_Duke]',default= None)
-    parser.add_argument('--save_attr_metrcis',type = str,help = 'path to save attributes metrics',default='./results/simple_osnet_CA_Duke/attr_metrics.xlsx')
-    parser.add_argument('--cross_domain',type = str,help = 'y/n',default='y')
+    parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_nets [ain_osnet_CA_Duke,simple_osnet_Duke_attribute,simple_osnet_CA_Duke]',default= '/home/hossein/SI_attributes/results/mb_conv3_12branches_nowei_CA_network/best_attr_net.pth')
+    parser.add_argument('--save_attr_metrcis',type = str,help = 'path to save attributes metrics',default='./results/mb_conv3_12branches_nowei_CA_network/attr_metrics.xlsx')
+    parser.add_argument('--cross_domain',type = str,help = 'y/n',default='n')
     args = parser.parse_args()
     return args
 
@@ -356,14 +356,7 @@ if args.mode == 'eval':
                                        save_path = save_path,
                                        device = device,
                                        part_loss = part_loss,
-                                       categorical = part_based,
-                                       loss_train=None,
-                                       loss_test=None,
-                                       train_attr_F1=None,
-                                       test_attr_F1=None,
-                                       train_attr_acc=None,
-                                       test_attr_acc=None,
-                                       stoped_epoch=None)
+                                       categorical = part_based)
     
     if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k': 
         if cross_domain:
