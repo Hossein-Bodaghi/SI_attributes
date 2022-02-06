@@ -11,14 +11,14 @@ from loaders import CA_Loader
 import torch
 from torch.utils.data import DataLoader
 from delivery import data_delivery
-
+import numpy as np
 import argparse
 
 def default_argument_parser():
 
     parser = argparse.ArgumentParser(description="SI Runner")
     parser.add_argument("--features-ready", action="store_true", help="features were saved or not")
-    parser.add_argument("--layer", default="out_conv4", help="layer to extract")
+    parser.add_argument("--layer", default="out_featuremap", help="layer to extract")
     parser.add_argument("--si-all", action="store_true", help="run si based on all")
     parser.add_argument("--clss", default="gender", help="which class to do forward select on")
     parser.add_argument("opts", help="Modify config options using the command-line", default=None, nargs=argparse.REMAINDER)
@@ -32,45 +32,44 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     models = ['osnet', 'attr_net']
-    model_path = './result/V8_01/best_attr_net.pth'
-    weight_path = './osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
-
+    weight_path = './SI/osnet_x1_0_msmt17.pth'
+    train_img_path = './datasets/Dukemtmc/bounding_box_train'
+    path_attr_train = './attributes/CA_Duke_train_with_id.npy'
+    
     network = load_model(model=models[0], weight_path=weight_path)
 
-    test_idx = torch.load('./attributes/test_idx_full.pth')
-    main_path = './Market-1501-v15.09.15/gt_bbox/'
-    path_attr = './attributes/new_total_attr.npy'
+    attr = data_delivery(train_img_path,
+                    path_attr=path_attr_train,
+                    need_parts=True,
+                    need_attr=True,
+                    dataset = 'CA_Duke')
+    
+    train_idx = np.arange(len(attr['img_names']))
 
-    attr = data_delivery(main_path=main_path,
-                            path_attr=path_attr,
-                            need_collection=True,
-                            double=False,
-                            need_attr=False)
-
-    test_data = CA_Loader(img_path=main_path,
-                                attr=attr,
-                                resolution=(256, 128),
-                                indexes=test_idx[0:3000],
-                                need_attr = False,
-                                need_collection=True,
-                                need_id = False,
-                                two_transforms = False,                          
-                                ) 
+    train_data = CA_Loader(img_path=train_img_path,
+                            attr=attr,
+                            resolution=(256,128),
+                            indexes=train_idx,
+                            dataset = 'CA_Duke',
+                            need_id = False,
+                            two_transforms = False) 
 
     if args.features_ready == True:
         out_layers = load_saved_features(args.layer)
     else:
-        test_loader = DataLoader(test_data, batch_size=200, shuffle=False)
-
-        out_layers = latent_feat_extractor(net=network, test_loader=test_loader,
+        test_loader = DataLoader(train_data, batch_size=128, shuffle=False)
+        si = latent_feat_extractor(net=network, test_loader=test_loader,
                                             layer=args.layer, save_path='./saving/', 
                                             device=device, use_adapt=False,
-                                            final_size = (8, 8), mode='return')
+                                            final_size = (8, 8), mode=None)
+        import pickle
+        with open(args.layer+'.pkl', 'wb') as f:
+            pickle.dump(si, f)
 
 
-    if args.si_all == True:
-        si_foot = si_calculator(out_layers, test_data.leg)
+    if args.si_all == False:
+        si = si_calculator(out_layers, train_data)
 
-    trend, layer_nums = forward_selection_SI(out_layers.to('cuda'), test_data.gender.to('cuda'), args.clss)
+    trend, layer_nums = forward_selection_SI(out_layers.to('cuda'), train_data.gender.to('cuda'), args.clss)
 
     Plot_SI(layer_nums, trend)

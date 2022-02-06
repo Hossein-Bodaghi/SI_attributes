@@ -23,14 +23,15 @@ def market_duke_attr(path, key = 'market_attribute'):
         10)down-gray 11)down-green 12)down-pink 13)down-purple 14)down-white 
         15)down-yellow 16)up-black 17)up-blue 18)up-green 19)up-gray 
         20)up-purple 21)up-red 22)up-white 23)up-yellow 24)lower-body type 
-        25)lower-body length 26)slleve-length 27)hair-length 28)hat 29)gender 
+        25)lower-body length 26)sleeve-length 27)hair-length 28)hat 29)gender 
         30)ID
     
     for DukeMTMC:
-        0) gender 1)upper-body_length 2)boots 3)hat 4)backpack 5)bag 
-        6)hand_bag 7)age 8)upblack 9)upwhite 10)upred 11)uppurple 12)upgray 
-        13)upblue 14)upgreen 15)upbrown 16)downblack 17)downwhite 18)downred 
-        19)downgray 20)downblue 21)downgreen 22)downbrown
+        0) backpack 1)shoulder_bag 2)hand_bag 3)boots 4)gender 5)hat 
+        6)shoes_color 7)upper-body_length 8)downblack 9)downwhite
+        10)downred 11)downgray 12)downblue 13)downgreen 14)downbrown
+        15)upblack 16)upwhite 17)upred 18)uppurple 19)upgray 
+        20)upblue 21)upgreen 22)upbrown 23)ID
     '''
     
     mat = io.loadmat(path)
@@ -56,7 +57,22 @@ def market_duke_attr(path, key = 'market_attribute'):
         t_attr = np.append(te_attr, tr_attr, axis=0) # (1812, 24) first train then test 
         t_attr = np.where(t_attr == 0, 1, t_attr)
         t_attr[:,:-1] = t_attr[:,:-1] - 1
-        return t_attr
+        attributes2 = np.zeros(np.shape(t_attr), dtype = int)
+        tr_l = len(te_attr)
+        attributes2[:tr_l,:] = t_attr[:tr_l,:] # choose train as origin 
+        attributes2[tr_l:,:3] = t_attr[tr_l:,5:8] # bags
+        attributes2[tr_l:,3] = t_attr[tr_l:,0] # boots
+        attributes2[tr_l:,4] = t_attr[tr_l:,3] # gender
+        attributes2[tr_l:,5] = t_attr[tr_l:,4] # hat
+        attributes2[tr_l:,6] = t_attr[tr_l:,1] # shoes color
+        attributes2[tr_l:,7] = t_attr[tr_l:,2] # upper-body length
+        attributes2[tr_l:,8:18] =  t_attr[tr_l:,8:18] # down color 
+        attributes2[tr_l:,18] = t_attr[tr_l:,21] # up-purple
+        attributes2[tr_l:,19] = t_attr[tr_l:,18] # up-gray
+        attributes2[tr_l:,20] = t_attr[tr_l:,19] # up-blue
+        attributes2[tr_l:,21] = t_attr[tr_l:,20] # up-blue
+        attributes2[tr_l:,22:] = t_attr[tr_l:,22:] # up-brown 
+        return {'test':attributes2[tr_l:] , 'train': attributes2[:tr_l]}
         
     elif key == 'market_attribute':    
         tr_attr = tr_attr.T # (750, 28)
@@ -112,19 +128,41 @@ def market_duke_attr(path, key = 'market_attribute'):
         attributes2[751:,28] = attributes[751:,11] # hat
         attributes2[751:,29] = attributes[751:,12] # gender
         return attributes2
+    
 
+def id_level2img_level(main_path, attr):
+    
+    img_names = os.listdir(main_path)
+    img_names.sort()
+    attributes = np.zeros((len(img_names), attr.shape[1]))
+
+    for i, name in enumerate(img_names):
+        b = name.split('_')
+        for j in range(len(attr)):
+            if attr[j, -1] == int(b[0]):
+                attributes[i] = attr[j]
+    return attributes
 #%%
 
 main_path = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
 attr_path = '/home/hossein/deep-person-reid/datasets/dukemtmc/DukeMTMC-attribute-master/duke_attribute.mat'
 attr = market_duke_attr(attr_path, key='duke_attribute') 
 
+path_train = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_train'
+path_test = '/home/hossein/SI_attributes/datasets/Dukemtmc/bounding_box_test'
+attr_train_duke = id_level2img_level(path_train, attr['train'])
+attr_test_duke = id_level2img_level(path_test, attr['test'])
+
+train_duke_save_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_train_with_id.npy'
+test_duke_save_path = '/home/hossein/SI_attributes/attributes/Duke_attribute_test_with_id.npy'
+np.save(train_duke_save_path, attr_train_duke)
+np.save(test_duke_save_path, attr_test_duke)
 #%%
 '''
 prepare our data for gt_bbox folder
 '''
 
-main_path = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
+path_train = '/home/hossein/deep-person-reid/my_osnet/Market-1501-v15.09.15/gt_bbox/'
 attr_path = '/home/hossein/deep-person-reid/market1501_label/Market-1501_Attribute-master/market_attribute.mat'
 attr = market_duke_attr(attr_path) # (1501, 31)
 

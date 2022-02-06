@@ -22,7 +22,6 @@ def load_model(model, weight_path,
     models = ['osnet', 'attr_net']
     model_path = './result/V8_01/best_attr_net.pth'
     weight_path1 = '/home/hossein/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth'
-
     '''    
     network = models.build_model(
         name='osnet_x1_0',
@@ -55,6 +54,16 @@ def latent_feat_extractor(net, test_loader,
     layers = ['out_maxpool', 'out_conv2','out_conv3','out_conv4','out_featuremap','out_globalavg','out_fc']        
     mode = ['saving', 'return']
     '''
+    """
+    #CAMARKET CLASSES:
+    clsses = ["age", "bags", "body", "body_colour", "body_type", "foot", "foot_colour",
+            "gender", "head", "head_colour", "leg", "leg_colour"]
+    """
+    clsses = ['gender','head', 'head_colour','cap','cap_colour','body','body_colour','bags','umbrella',
+                'face','leg','leg_colour','foot','foot_colour','accessories','position','race']
+
+    SI = dict.fromkeys(clsses, 0.0)
+
     net = net.to(device)
     features = torch.Tensor().to('cpu')
     net.eval()
@@ -66,6 +75,10 @@ def latent_feat_extractor(net, test_loader,
                 madapt = torch.nn.AdaptiveAvgPool2d(final_size) # define adaptive pooling
                 out_layer = madapt(out_layer) # dimention reduction with adaptive pooling
             
+            si_toadd = si_calculator(out_layer, data, clsses)
+            SI = {key: SI.get(key, 0) + si_toadd.get(key, 0)
+                    for key in set(SI) | set(si_toadd)}
+
             if mode == 'return':
                 features = torch.cat((features, out_layer.to('cpu')), 0)
             
@@ -76,27 +89,33 @@ def latent_feat_extractor(net, test_loader,
                     os.mkdir(save_path)
                 torch.save(out_layer, saving_path)
 
-    return features
+    return  {k: v / len(test_loader) for k, v in SI.items()}
 
 
-def si_calculator(X, Y):
+def si_calculator(X, Y, classes):
     #X(12000,30,30,3)  Y(12000, 43)  flatx (12000, 2700)
     #print('Computing SI')
     X = torch.flatten(X, start_dim=1)
     idxs2 = torch.sort(torch.cdist(X, X)).indices[:,1:2]
-    si = 0
+    
+    si = dict.fromkeys(classes, 0)
+
     for i in range(X.shape[0]):
-            #if torch.equal(torch.reshape(Y[idxs2[i]], (-1,)), Y[i]):
-            #    si += 1
-            #for 0 or 1 labels use this:
-            if torch.reshape(Y[idxs2[i]], (-1,)) == Y[i]:
-                si += 1
+        for key in si.keys():
+            if key == 'gender' or key == 'body_type':
+                if torch.reshape(Y[key][idxs2[i]], (-1,)) == Y[key][i]:
+                    si[key] += 1
+            else:
+                if torch.equal(torch.reshape(Y[key][idxs2[i]], (-1,)), Y[key][i]):
+                    si[key] += 1
+
     total = X.shape[0]
     del X
     del idxs2
     del Y
     torch.cuda.empty_cache()
-    return si/total
+
+    return {k: v / total for k, v in si.items()}
         
 
 def load_saved_features(layer, end):

@@ -145,6 +145,25 @@ class CA_Loader(Dataset):
                 self.body = attr['body'][indexes]
                 self.leg_colour = attr['leg_colour'][indexes]
                 self.body_colour = attr['body_colour'][indexes]
+
+            elif dataset == 'CA_Duke':
+                self.gender = attr['gender'][indexes]
+                self.head = attr['head'][indexes]
+                self.head_colour = attr['head_colour'][indexes]
+                self.cap = attr['cap'][indexes]
+                self.cap_colour = attr['cap_colour'][indexes]
+                self.body = attr['body'][indexes]
+                self.body_colour = attr['body_colour'][indexes]
+                self.bags = attr['bags'][indexes]
+                self.umbrella = attr['umbrella'][indexes]
+                self.face = attr['face'][indexes]
+                self.leg = attr['leg'][indexes]
+                self.leg_colour = attr['leg_colour'][indexes]
+                self.foot = attr['foot'][indexes]           
+                self.foot_colour = attr['foot_colour'][indexes]
+                self.accessories = attr['accessories'][indexes]
+                self.position = attr['position'][indexes]
+                self.race = attr['race'][indexes]
                 
         if self.need_attr:
             self.attr = attr['attributes'][indexes]           
@@ -219,6 +238,26 @@ class CA_Loader(Dataset):
                     'body':self.body[idx],
                     'leg_colour':self.leg_colour[idx],
                     'body_colour':self.body_colour[idx], 
+                    }) 
+            elif self.dataset == 'CA_Duke':
+                out.update({
+                    'gender':self.gender[idx],
+                    'head':self.head[idx],
+                    'head_colour':self.head_colour[idx],
+                    'cap':self.cap[idx],
+                    'cap_colour':self.cap_colour[idx],
+                    'body':self.body[idx],
+                    'body_colour':self.body_colour[idx],
+                    'bags':self.bags[idx],
+                    'umbrella':self.umbrella[idx],
+                    'face':self.face[idx],
+                    'leg':self.leg[idx],
+                    'leg_colour':self.leg_colour[idx],
+                    'foot':self.foot[idx],                      
+                    'foot_colour':self.foot_colour[idx],
+                    'accessories':self.accessories[idx],
+                    'position':self.position[idx],
+                    'race':self.race[idx]
                     }) 
         if self.need_id:
             out.update({'id':self.id[idx]})
