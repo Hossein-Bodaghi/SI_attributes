@@ -294,7 +294,14 @@ def part_data_delivery(weights, device, dataset='CA_Market', dynamic=False):
                     
                 else:
                     loss_dict.update({key:nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
-
+        elif dataset == 'CA_Duke_Market':
+            
+            for key in weights:
+                if key == 'bags' or key == 'leg_colour' or key == 'body_colour':
+                    loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
+                    
+                else:
+                    loss_dict.update({key:nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
     return loss_dict
 
 
