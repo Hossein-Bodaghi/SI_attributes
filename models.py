@@ -16,6 +16,7 @@ from transformers import MBConvBlock, ScaledDotProductAttention
 
 #%%
 from torchreid.models.osnet import Conv1x1, OSBlock
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 blocks = [OSBlock, OSBlock, OSBlock]
 layers = [2, 2, 2]
@@ -1282,3 +1283,153 @@ class Loss_weighting(nn.Module):
     def save_baseline(self, saving_path):
         torch.save(self.weights_lin.state_dict(), saving_path)
         print('loss_weights saved to {}'.format(saving_path)) 
+
+
+class mb12_CA_auto_build_model(nn.Module):
+    
+    def __init__(self,
+                 model,
+                 main_cov_size = 512,
+                 attr_dim = 128,
+                 dropout_p = 0.3,
+                 sep_conv_size = 64,
+                 branches = None,
+                 feature_selection = None):
+        #[x for x in attr.keys() if x not in ['id','img_names','names']]
+        super().__init__()
+        self.feat_indices = feature_selection
+        self.feature_dim = main_cov_size
+        if self.feature_dim != 384 and self.feature_dim != 512:
+            raise Exception('main_cov_size should be 384 or 512')
+        self.dropout_p = dropout_p 
+        self.global_avgpool = nn.AdaptiveAvgPool2d(1)
+        self.softmax = nn.Softmax(dim=1)
+        self.sigmoid = nn.Sigmoid()
+        self.model = model
+        self.sep_conv_size = sep_conv_size
+        self.attr_dim = attr_dim
+        self.branches = branches
+
+        if self.feat_indices is not None:
+            self.feature_dim = 25
+        # convs
+        self.attr_feat_dim = sep_conv_size
+        self.convs = {}
+        for k in self.branches.keys():
+            self.convs.setdefault(k, _make_layer(blocks[2],
+                                                    layers[2],
+                                                    self.feature_dim,
+                                                    self.sep_conv_size,
+                                                    reduce_spatial_size=False
+                                                    ).to(device))
+        """
+        self.convs = dict.fromkeys(branches.keys(), _make_layer(blocks[2],
+                                                    layers[2],
+                                                    self.feature_dim,
+                                                    self.sep_conv_size,
+                                                    reduce_spatial_size=False
+                                                    ))
+        """                        
+        # fully connecteds
+        self.fcs = {}
+        for k in self.branches.keys():
+            self.fcs.setdefault(k, self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p).to(device))
+        """
+        self.fcs = dict.fromkeys(branches.keys(), self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p))
+        """
+        # classifiers
+        self.clfs = {}
+        for k in self.branches.keys():
+            self.clfs.setdefault(k, nn.Linear(self.attr_dim, branches[k]).to(device))
+        """
+        self.clfs = dict(branches.keys(), nn.Linear(self.attr_dim, branches.values()))
+        """
+    def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
+    
+        if isinstance(fc_dims, int):
+            fc_dims = [fc_dims]
+    
+        layers = []
+        for dim in fc_dims:
+            layers.append(nn.Linear(input_dim, dim))
+            layers.append(nn.BatchNorm1d(dim))
+            layers.append(nn.ReLU(inplace=True))
+            if dropout_p is not None:
+                layers.append(nn.Dropout(p=dropout_p))
+            input_dim = dim
+    
+        return nn.Sequential(*layers)
+
+    def get_feature(self, x, get_attr=True, get_feature=True, get_collection=False):
+        
+        out_conv4 = self.out_layers_extractor(x, 'out_conv3')
+        # The path for multi-branches for attributes 
+        out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf, need_feature=True)          
+        out_body = self.attr_branch(out_conv4, self.conv_body, self.body_fc, self.body_clf, need_feature=True)     
+        out_body_type = self.attr_branch(out_conv4, self.conv_body_type, self.body_type_fc, self.body_type_clf, need_feature=True)          
+        out_leg = self.attr_branch(out_conv4, self.conv_leg ,self.leg_fc, self.leg_clf, need_feature=True)           
+        out_foot = self.attr_branch(out_conv4, self.conv_foot, self.foot_fc, self.foot_clf, need_feature=True)            
+        out_gender = self.attr_branch(out_conv4, self.conv_gender, self.gender_fc, self.gender_clf, need_feature=True)             
+        out_bags = self.attr_branch(out_conv4, self.conv_bags, self.bags_fc, self.bags_clf, need_feature=True)            
+        out_body_colour = self.attr_branch(out_conv4, self.conv_body_color, self.body_color_fc, self.body_color_clf, need_feature=True)             
+        out_leg_colour = self.attr_branch(out_conv4, self.conv_leg_color, self.leg_color_fc, self.leg_color_clf, need_feature=True)              
+        out_foot_colour = self.attr_branch(out_conv4, self.conv_foot_color, self.foot_color_fc, self.foot_color_clf, need_feature=True)  
+        
+        # The path for person re-id:
+        del out_conv4
+        x = self.out_layers_extractor(x, 'out_fc')
+        x = [out_head, out_body, out_body_type, out_leg,
+                   out_foot, out_gender, out_bags, out_body_colour,
+                   out_leg_colour, out_foot_colour, x]
+        outputs = torch.cat(x, dim=1)
+        return outputs
+        
+    
+    def vector_features(self, x):
+        features = self.model(x)
+        out_attr = self.attr_lin(features) 
+        out_features = torch.cat(features, out_attr, dim=1)
+        return out_features
+        
+    def out_layers_extractor(self, x, layer):
+        out_os_layers = self.model.layer_extractor(x, layer) 
+        return out_os_layers   
+                
+    def attr_branch(self, x, fc_layer, clf_layer,
+                    conv_layer=None, need_feature=False):
+        ''' fc_layer should be a list of fully connecteds
+            clf_layer hould be a list of classifiers
+        '''
+        # handling conv layer
+        if conv_layer:
+            x = conv_layer(x)
+        x = self.global_avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = fc_layer(x)
+        if need_feature:
+                return x
+        out = clf_layer(x)
+        return out 
+    
+    def forward(self, x, need_feature=False):
+        if self.feature_dim == 512:
+            out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
+        elif self.feature_dim == 384:
+            out_conv4 = self.out_layers_extractor(x, 'out_conv3')  
+        else:
+            raise Exception('main_cov_size should be 384 or 512')
+        
+        out_attributes = {}
+
+        for k in self.branches.keys():
+            out_attributes.setdefault(k, self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[0]),
+                                                            fc_layer = self.fcs[k],
+                                                            clf_layer = self.clfs[k],
+                                                            conv_layer = self.convs[k], need_feature = need_feature)
+            )
+
+        return out_attributes
+    
+    def save_baseline(self, saving_path):
+        torch.save(self.model.state_dict(), saving_path)
+        print('baseline model save to {}'.format(saving_path))

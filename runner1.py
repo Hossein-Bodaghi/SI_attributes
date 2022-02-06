@@ -9,7 +9,7 @@ Created on Tue Jan 11 20:07:29 2022
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot, common_attr
 from trainings import dict_training_multi_branch, dict_evaluating_multi_branch, take_out_multi_branch, dict_training_dynamic_loss
-from models import mb12_CA_build_model, attributes_model, Loss_weighting
+from models import mb12_CA_build_model, attributes_model, Loss_weighting, mb12_CA_auto_build_model
 from evaluation import metrics_print, total_metrics
 from delivery import data_delivery
 from metrics import tensor_metrics, IOU
@@ -246,12 +246,13 @@ for idx, param in enumerate(params):
     if idx <= 214: param.requires_grad = False
     
 if part_based:
-    attr_net = mb12_CA_build_model(
+    attr_net = mb12_CA_auto_build_model(
                       model,
                       main_cov_size = 384,
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
+                      branches={k: v.shape[1] for k, v in attr.items() if k not in ['id','img_names','names']},
                       feature_selection = None)
 else:
     
