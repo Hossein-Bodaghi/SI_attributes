@@ -470,3 +470,127 @@ for i in range(len(attr_names)):
 idd = np.reshape(np.array(id_), (len(id_),1))
 attr_with_id = np.append(attributes, idd, axis=1)
 np.save('E:/UT/NEW_WAY/SI_attributes/attributes/PA100k_all_with_id.npy',attr_with_id)
+
+#%%
+import torch
+import os
+import numpy as np
+import shutil
+
+train_idx = torch.load('/home/taarlab/SI_attributes/attributes/train_idx_full.pth')
+test_idx = torch.load('/home/taarlab/SI_attributes/attributes/test_idx_full.pth') 
+
+
+def load_image_names(main_path):
+    img_names = os.listdir(main_path)
+    img_names.sort()    
+    return np.array(img_names)
+
+
+main_path = '/home/taarlab/SI_attributes/datasets/Market1501/Market-1501-v15.09.15/gt_bbox'
+img_names = load_image_names(main_path)
+
+attr_path = '/home/taarlab/SI_attributes/attributes/CA_Market_with_id.npy'
+attr = np.load(attr_path)
+
+train_dir = '/home/taarlab/SI_attributes/datasets/Market1501/Market-1501-v15.09.15/train_common'
+test_dir = '/home/taarlab/SI_attributes/datasets/Market1501/Market-1501-v15.09.15/test_common'
+for f in os.listdir(main_path):
+    b = f.split('_')
+    if int(b[0]) < 751:
+        shutil.copy(f, train_dir)
+# for name in img_names:
+#     b = name.split('_')
+#     if int(b[0]) < 751:
+#         shutil.copy(name, train_dir)
+        
+#%% common attributes between CA-Market and CA-Duke
+
+"""
+common attributes between CA-Market and CA-Duke
+common-attr = [gender, cap, hairless, short-hair, long-hair,, knot, h-colorful, h-black,
+               b-white, b-red, b-yelllow, b-green, b-blue, b-gray, b-purple, b-black, 
+               backpack, handbag, no-bag, pants, short, skirt, l-white, l-red, l-brown,
+               l-yellow, l-green, l-blue, l-gray, l-black, shoes, hidden, no-color,
+               f-white, f-colorful, f-black]
+
+"""
+
+camarket_attr = '/home/taarlab/SI_attributes/attributes/CA_Market_with_id.npy'
+caduke_attr = '/home/taarlab/SI_attributes/attributes/CA_Duke_train_with_id.npy'
+caduke_attr_ts = '/home/taarlab/SI_attributes/attributes/CA_Duke_test_with_id.npy'
+
+
+def common_attr(path, key ='CA_Duke'):
+    attributes = np.load(path)
+    atr_new = np.zeros((np.shape(attributes)[0], 38), dtype=int)
+    
+    if key == "CA_Duke":
+        atr_new[:,0] = attributes[:,0] #gender
+        for i in range(np.shape(attributes)[0]):
+            for j in (10, 11, 12):
+                if attributes[i, j] == 1:
+                    atr_new[i, 1] = 1 #cap
+        atr_new[:,2:6] = attributes[:,1:5] #hair
+        for i in range(np.shape(attributes)[0]):
+            for j in (6,7,15,16,17,18,19,20,21):
+                if attributes[i, j] == 1:
+                    atr_new[i, 6] = 1    #hair-colorful
+        for i in range(np.shape(attributes)[0]):
+            for j in (8,22):
+                if attributes[i, j] == 1:
+                    atr_new[i, 7] = 1  
+        atr_new[:,8] = attributes[:,28] #b-white
+        atr_new[:,9] = attributes[:,33] #b-red
+        atr_new[:,10] = attributes[:,35] #b-yellow
+        atr_new[:,11] = attributes[:,32] #b-green
+        atr_new[:,12] = attributes[:,31] #b-blue
+        atr_new[:,13] = attributes[:,36] #b-gray
+        atr_new[:,14] = attributes[:,29] #b-purple
+        atr_new[:,15:19] = attributes[:,37:41] #b-black
+        atr_new[:,19:22] = attributes[:,47:50] #gender
+        atr_new[:,22] = attributes[:,51] #no-bag & leg and le-color
+        atr_new[:,23:26] = attributes[:,54:57] #gender
+        atr_new[:,26] = attributes[:,53] #gender
+        atr_new[:,27] = attributes[:,52] #gender
+        atr_new[:,28] = attributes[:,57] #gender
+        atr_new[:,29] = attributes[:,54] #gender
+        atr_new[:,30] = attributes[:,58] #gender
+        for i in range(np.shape(attributes)[0]):
+            for j in (60,61,62):
+                if attributes[i, j] == 1:
+                    atr_new[i, 31] = 1
+        atr_new[:,32] = attributes[:,63] #gender
+        atr_new[:,33] = attributes[:,69] #gender
+        atr_new[:,34] = attributes[:,64] #gender
+        for i in range(np.shape(attributes)[0]):
+            for j in (65,66,67):
+                if attributes[i, j] == 1:
+                    atr_new[i, 35] = 1        
+        atr_new[:,36] = attributes[:,68] #gender
+        atr_new[:,37] = attributes[:,79] #gender
+        
+        
+    if key == 'CA_Market':
+        atr_new[:,0:8] = attributes[:,0:8] 
+        atr_new[:,8:17] = attributes[:,13:22] 
+        for i in range(np.shape(attributes)[0]):
+            for j in (22,23):
+                if attributes[i, j] == 1:
+                    atr_new[i, 17] = 1  
+                    
+        atr_new[:,18:32] = attributes[:,24:38] 
+        atr_new[:,32:37] = attributes[:,39:44]  
+        atr_new[:,37] = attributes[:,48] 
+        
+    return atr_new
+atr_duke_common = common_attr(caduke_attr, key ='CA_Duke')
+np.save('/home/taarlab/SI_attributes/attributes/CA_Duke_train_common_with_id.npy',atr_duke_common)
+
+atr_duke_common_ts = common_attr(caduke_attr_ts, key ='CA_Duke')
+np.save('/home/taarlab/SI_attributes/attributes/CA_Duke_test_common_with_id.npy',atr_duke_common_ts)
+
+atr_market_common = common_attr(camarket_attr, key ='CA_Market')
+np.save('/home/taarlab/SI_attributes/attributes/CA_Market_common_with_id.npy',atr_market_common)
+
+

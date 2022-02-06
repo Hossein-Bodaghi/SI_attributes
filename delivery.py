@@ -75,6 +75,25 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
                         'body':attr_vec[:,7].reshape(len(attr_vec), 1),
                         'leg_colour':attr_vec[:,8:15],
                         'body_colour':attr_vec[:,15:22]}) 
+        
+        elif dataset == "CA_Duke":
+            output.update({'gender':attr_vec[:,0].reshape(len(attr_vec), 1),
+                        'head':attr_vec[:,1:6],
+                        'head_colour':attr_vec[:,6:10],
+                        'cap':attr_vec[:,10:15],
+                        'cap_colour':attr_vec[:,15:24],
+                        'body':attr_vec[:,24:28],
+                        'body_colour':attr_vec[:,28:38],
+                        'bags':attr_vec[:,38:41],
+                        'umbrella':attr_vec[:,41:44],
+                        'face':attr_vec[:,44:47],
+                        'leg':attr_vec[:,47:51],
+                        'leg_colour':attr_vec[:,51:60],
+                        'foot':attr_vec[:,60:64],                       
+                        'foot_colour':attr_vec[:,64:70],
+                        'accessories':attr_vec[:,70:75],
+                        'position':attr_vec[:,75:76].reshape(len(attr_vec), 1),
+                        'race':attr_vec[:,76:79]})
             
     if dataset == 'CA_Market':
         output.update({'names' : ['gender','cap','hairless','short hair','long hair',
@@ -124,6 +143,12 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
                                  'Shorts','Skirt&Dress','boots']})
 
             
+    elif dataset == 'CA_Duke_Market':
+        output.update({'names': ['gender','cap','hairless','short_hair','long_hair','knot','h_colorful','h_black',
+                                 'b_white','b_red','b_yellow','b_green','b_blue','b_gray','b_purple','b_black',
+                                 'backpack','hand_bag','no_bag','pants','short','skirt','l_w','l_r','l_br',
+                                 'l_y','l_green','l_b','l_gray','l_p','l_black','shoes','hidden','no_color',
+                                 'f_w','f_colorful','f_black']})        
     return output
 
 
