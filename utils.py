@@ -63,36 +63,30 @@ def common_attr(predicts, targets):
         new_predicts[:,9] = predicts[:, 38]
         new_targets[:,9] = targets[:, 11] 
         
-    if predicts.shape[1] == 79 and targets.shape[1] == 26:
-        attr_names = ['gender', 'Hat','Glasses','bag','LongCoat','pants','shorts', 'skirt', 'boots', 'Backpack']
+    elif predicts.shape[1] == 37 and targets.shape[1] == 26:
+        attr_names = ['gender','Hat','ShoulderBag','Backpack','pants','shorts','skirt']
         
-        new_predicts = torch.zeros((predicts.shape[0], 10))
-        new_targets = torch.zeros((targets.shape[0], 10))
+        new_predicts = torch.zeros((predicts.shape[0], len(attr_names)))
+        new_targets = torch.zeros((targets.shape[0], len(attr_names)))
         
         new_predicts[:, 0] = predicts[:,0]
         new_targets[:, 0] = targets[:,0]            
 
-        new_predicts[:, 1] = (predicts[:,10] + predicts[:,11] + predicts[:,12] )/3
+        new_predicts[:, 1] = predicts[:,1]
 
         new_targets[:, 1] = targets[:,7]  
 
-        new_predicts[:, 2] = predicts[:, 70]
-        new_targets[:, 2] = targets[:, 8]   
+        new_predicts[:, 2] = predicts[:,17]
+        new_targets[:, 2] = targets[:, 10]   
 
-        new_predicts[:, 3] = predicts[:, 39]
-        new_targets[:, 3] = (targets[:,9]+targets[:,10])/2
+        new_predicts[:, 3] = predicts[:, 16]
+        new_targets[:, 3] = targets[:, 11]
 
-        new_predicts[:, 4] = predicts[:, 26]
-        new_targets[:, 4] = targets[:, 21]  
+        new_predicts[:, 4] = predicts[:, 19]
+        new_targets[:, 4] = targets[:, 22]  
 
-        new_predicts[:,5:8] = predicts[:, 47:50]
-        new_targets[:,5:8] = targets[:, 22:25]             
-
-        new_predicts[:,8] = predicts[:, 62]
-        new_targets[:,8] = targets[:, 25]    
-
-        new_predicts[:,9] = predicts[:, 38]
-        new_targets[:,9] = targets[:, 11]          
+        new_predicts[:,4:7] = predicts[:,19:22]
+        new_targets[:,4:7] = targets[:,22:25]          
     return new_predicts, new_targets, attr_names
 
 
