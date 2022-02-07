@@ -104,6 +104,7 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
                                   'l_gray','l_p','l_black','shoes','sandal',
                                   'hidden','no color','f_w', 'f_colorful','f_black', 'young', 
                                   'teenager', 'adult', 'old']})
+
     elif dataset == 'Market_attribute':
         output.update({'names' : ['young', 'teenager', 'adult' ,'old', 'backpack', 'shoulder-bag', 
                                   'hand-bag', 'down-black','down-blue','down-brown',
@@ -111,12 +112,14 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
                                   'down-yellow','up-black','up-blue','up-green','up-gray', 
                                   'up-purple','up-red','up-white','up-yellow','lower-body type', 
                                   'lower-body length','sleeve-length','hair-length','hat ','gender']})
+
     elif dataset == 'Duke_attribute':
         output.update({'names' : ['backpack','shoulder_bag','hand_bag','boots','gender','hat',
                                   'shoes_color','upper-body_length','downblack','downwhite',
                                   'downred','downgray','downblue','downgreen','downbrown',
                                   'upblack','upwhite','upred','uppurple','upgray',
                                   'upblue','upgreen','upbrown']})
+                                  
     elif dataset == "CA_Duke":
         output.update({'names' : ['gender','hairless',"short hair","longhair(straight)","knot","unvisible(hair)",
                                   "burnette","blonde", "black",'no-color',
