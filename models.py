@@ -22,7 +22,6 @@ blocks = [OSBlock, OSBlock, OSBlock]
 layers = [2, 2, 2]
 channels = [16, 64, 384, 512] # channels are the only difference between os_net_x_1 and others 
 
-
 def _make_layer(
     block,
     layer,
@@ -1285,7 +1284,7 @@ class Loss_weighting(nn.Module):
         print('loss_weights saved to {}'.format(saving_path)) 
 
 
-class mb12_CA_auto_build_model(nn.Module):
+class mb_CA_auto_build_model(nn.Module):
     
     def __init__(self,
                  model,
@@ -1293,7 +1292,7 @@ class mb12_CA_auto_build_model(nn.Module):
                  attr_dim = 128,
                  dropout_p = 0.3,
                  sep_conv_size = 64,
-                 branches = None,
+                 branch_names = None,
                  feature_selection = None):
         #[x for x in attr.keys() if x not in ['id','img_names','names']]
         super().__init__()
@@ -1308,40 +1307,54 @@ class mb12_CA_auto_build_model(nn.Module):
         self.model = model
         self.sep_conv_size = sep_conv_size
         self.attr_dim = attr_dim
-        self.branches = branches
+        self.branch_names = branch_names
 
         if self.feat_indices is not None:
             self.feature_dim = 25
-        # convs
+        
         self.attr_feat_dim = sep_conv_size
+        self.branches = {}
+        for k in self.branch_names.keys():
+            # convs
+            setattr(self, 'conv_'+k, _make_layer(blocks[2],
+                                                    layers[2],
+                                                    self.feature_dim,
+                                                    self.sep_conv_size,
+                                                    reduce_spatial_size=False
+                                                    ))
+            
+            # fully connecteds
+            setattr(self, 'fc_'+k, self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p))
+            # classifiers
+            setattr(self, 'clf_'+k, nn.Linear(self.attr_dim, branch_names[k]))
+
+        """
         self.convs = {}
-        for k in self.branches.keys():
-            self.convs.setdefault(k, _make_layer(blocks[2],
+        self.branches['conv_'+k] = _make_layer(blocks[2],
+                                                    layers[2],
+                                                    self.feature_dim,
+                                                    self.sep_conv_size,
+                                                    reduce_spatial_size=False
+                                                    )
+        self.convs.setdefault(k, _make_layer(blocks[2],
                                                     layers[2],
                                                     self.feature_dim,
                                                     self.sep_conv_size,
                                                     reduce_spatial_size=False
                                                     ).to(device))
-        """
         self.convs = dict.fromkeys(branches.keys(), _make_layer(blocks[2],
                                                     layers[2],
                                                     self.feature_dim,
                                                     self.sep_conv_size,
                                                     reduce_spatial_size=False
                                                     ))
-        """                        
-        # fully connecteds
-        self.fcs = {}
         for k in self.branches.keys():
             self.fcs.setdefault(k, self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p).to(device))
-        """
+        self.fcs = {}
         self.fcs = dict.fromkeys(branches.keys(), self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p))
-        """
-        # classifiers
         self.clfs = {}
         for k in self.branches.keys():
             self.clfs.setdefault(k, nn.Linear(self.attr_dim, branches[k]).to(device))
-        """
         self.clfs = dict(branches.keys(), nn.Linear(self.attr_dim, branches.values()))
         """
     def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
@@ -1421,11 +1434,11 @@ class mb12_CA_auto_build_model(nn.Module):
         
         out_attributes = {}
 
-        for k in self.branches.keys():
+        for k in self.branch_names.keys():
             out_attributes.setdefault(k, self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[0]),
-                                                            fc_layer = self.fcs[k],
-                                                            clf_layer = self.clfs[k],
-                                                            conv_layer = self.convs[k], need_feature = need_feature)
+                                                            fc_layer = getattr(self,'fc_'+k),
+                                                            clf_layer = getattr(self,'clf_'+k),
+                                                            conv_layer = getattr(self,'conv_'+k), need_feature = need_feature)
             )
 
         return out_attributes

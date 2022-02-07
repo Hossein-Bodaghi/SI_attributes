@@ -9,7 +9,7 @@ Created on Tue Jan 11 20:07:29 2022
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot, common_attr
 from trainings import dict_training_multi_branch, dict_evaluating_multi_branch, take_out_multi_branch, dict_training_dynamic_loss
-from models import mb12_CA_build_model, attributes_model, Loss_weighting, mb12_CA_auto_build_model
+from models import mb12_CA_build_model, attributes_model, Loss_weighting, mb_CA_auto_build_model
 from evaluation import metrics_print, total_metrics
 from delivery import data_delivery
 from metrics import tensor_metrics, IOU
@@ -29,7 +29,7 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Duke_Market')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
     parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
     parser.add_argument('--main_path',type = str,help = 'image_path = [./datasets/Market1501/Market-1501-v15.09.15/gt_bbox/,./datasets/PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
     parser.add_argument('--train_path',type = str,help = '[./datasets/CA_Duke_Market/bbox_train,./datasets/Dukemtmc/bounding_box_train]',default = './datasets/CA_Duke_Market/bbox_train')
@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument('--attr_path',type = str,help = '[CA_Market_with_id,PA100k_all_with_id,Market_attribute_with_id]',default = './attributes/CA_Market_with_id.npy' )
     parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id,Duke_attribute_train_with_id,CA_Duke_Market_train_with_id]',default = './attributes/CA_Duke_Market_train_with_id.npy')
     parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id,CA_Duke_test_with_id,CA_Duke_Market_test_with_id]',default = './attributes/CA_Duke_Market_test_with_id.npy')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')       
+    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
@@ -246,13 +246,13 @@ for idx, param in enumerate(params):
     if idx <= 214: param.requires_grad = False
     
 if part_based:
-    attr_net = mb12_CA_auto_build_model(
+    attr_net = mb_CA_auto_build_model(
                       model,
                       main_cov_size = 384,
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
-                      branches={k: v.shape[1] for k, v in attr.items() if k not in ['id','img_names','names']},
+                      branch_names={k: v.shape[1] for k, v in attr.items() if k not in ['id','img_names','names']},
                       feature_selection = None)
 else:
     
@@ -282,7 +282,7 @@ print('baseline has {} parameters'.format(baseline_size),
 
 params = attr_net.parameters()
 
-lr = 3.5e-5
+lr = 3.5e-3
 optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 10, 17], gamma=0.9)
 
@@ -322,7 +322,7 @@ if args.mode == 'train':
                               save_path = save_path,  
                               part_loss = part_loss,
                               device = device,
-                              version = 'CA_Duke_Market_osnet_msmt17',
+                              version = 'CA_bullshit_osnet_msmt17',
                               categorical = part_based,
                               resume=False,
                               loss_train = None,

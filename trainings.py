@@ -77,9 +77,7 @@ def CA_part_loss_calculator(out_data, data, part_loss, categorical = True, dynam
     else:
         if categorical:
             for key, loss in part_loss.items():
-                if key == 'body_type' or key == 'gender':
-                    loss_part = loss(out_data[key], data[key].float())
-                elif key == 'body_colour':
+                if key == 'body_type' or key == 'gender' or key == 'body_colour' or key == 'position' or key == 'accessories':
                     loss_part = loss(out_data[key], data[key].float())
                 else :
                     loss_part = loss(out_data[key], data[key].argmax(dim=1))
@@ -92,32 +90,13 @@ def CA_part_loss_calculator(out_data, data, part_loss, categorical = True, dynam
     loss_total = sum(attr_loss)
     attr_loss = torch.tensor(attr_loss)
     return attr_loss, loss_total
-            
-def Market_part_loss_calculator(out_data, data, part_loss, categorical = True):
-    attr_loss = []
-    if categorical:
-        for key, loss in part_loss.items():
-            if key == 'age' or key == 'bags' or key == 'leg_colour' or key == 'body_colour':
-                loss_part = loss(out_data[key], data[key].argmax(dim=1))
-            else :
-                loss_part = loss(out_data[key], data[key].float())
-            attr_loss.append(loss_part)
-    if not categorical:
-        for key, loss in part_loss.items():
-            loss_part = loss(out_data[key], data[key].float())
-            attr_loss.append(loss_part)
-
-    loss_total = sum(attr_loss)
-    attr_loss = torch.tensor(attr_loss)
-    return attr_loss, loss_total
-
 
 def CA_target_attributes_12(out_data, data, part_loss, need_tensor_max = False, categorical = True):
     'calculte y_attr and y_target for categorical and vectorize formats'
     if categorical:
         m = 0
         for key in part_loss:
-            if key == 'body_type' or key == 'gender':
+            if key == 'body_type' or key == 'gender' or key == 'position' or key == 'accessories':
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
                 if m == 0:
                     y_target = data[key]
