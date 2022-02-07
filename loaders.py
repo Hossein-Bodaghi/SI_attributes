@@ -127,8 +127,8 @@ class CA_Loader(Dataset):
                 self.age = attr['age'][indexes]
                 self.gender = attr['gender'][indexes]
                 self.bags = attr['bags'][indexes]
-                self.leg_colour = attr['leg_colour'][indexes]
-                self.body_colour = attr['body_colour'][indexes]
+                self.leg_color = attr['leg_color'][indexes]
+                self.body_color = attr['body_color'][indexes]
                 self.leg = attr['leg'][indexes]
                 # not common
                 self.hair = attr['hair'][indexes]
@@ -141,26 +141,26 @@ class CA_Loader(Dataset):
                 self.boot = attr['boot'][indexes]
                 self.gender = attr['gender'][indexes]
                 self.hat = attr['hat'][indexes]
-                self.foot_colour = attr['foot_colour'][indexes]
+                self.foot_color = attr['foot_color'][indexes]
                 self.body = attr['body'][indexes]
-                self.leg_colour = attr['leg_colour'][indexes]
-                self.body_colour = attr['body_colour'][indexes]
+                self.leg_color = attr['leg_color'][indexes]
+                self.body_color = attr['body_color'][indexes]
 
             elif dataset == 'CA_Duke':
                 self.gender = attr['gender'][indexes]
                 self.head = attr['head'][indexes]
-                self.head_colour = attr['head_colour'][indexes]
+                self.head_color = attr['head_color'][indexes]
                 self.cap = attr['cap'][indexes]
-                self.cap_colour = attr['cap_colour'][indexes]
+                self.cap_color = attr['cap_color'][indexes]
                 self.body = attr['body'][indexes]
-                self.body_colour = attr['body_colour'][indexes]
+                self.body_color = attr['body_color'][indexes]
                 self.bags = attr['bags'][indexes]
                 self.umbrella = attr['umbrella'][indexes]
                 self.face = attr['face'][indexes]
                 self.leg = attr['leg'][indexes]
-                self.leg_colour = attr['leg_colour'][indexes]
+                self.leg_color = attr['leg_color'][indexes]
                 self.foot = attr['foot'][indexes]           
-                self.foot_colour = attr['foot_colour'][indexes]
+                self.foot_color = attr['foot_color'][indexes]
                 self.accessories = attr['accessories'][indexes]
                 self.position = attr['position'][indexes]
                 self.race = attr['race'][indexes]
@@ -219,8 +219,8 @@ class CA_Loader(Dataset):
                 out.update({
                     'age':self.age[idx],
                     'bags':self.bags[idx],
-                    'leg_colour':self.leg_colour[idx],
-                    'body_colour':self.body_colour[idx],
+                    'leg_color':self.leg_color[idx],
+                    'body_color':self.body_color[idx],
                     'leg_type':self.leg_type[idx],
                     'leg':self.leg[idx],
                     'sleeve':self.sleeve[idx],
@@ -234,27 +234,27 @@ class CA_Loader(Dataset):
                     'boot':self.boot[idx],
                     'gender':self.gender[idx],
                     'hat':self.hat[idx],
-                    'foot_colour':self.foot_colour[idx],
+                    'foot_color':self.foot_color[idx],
                     'body':self.body[idx],
-                    'leg_colour':self.leg_colour[idx],
-                    'body_colour':self.body_colour[idx], 
+                    'leg_color':self.leg_color[idx],
+                    'body_color':self.body_color[idx], 
                     }) 
             elif self.dataset == 'CA_Duke':
                 out.update({
                     'gender':self.gender[idx],
                     'head':self.head[idx],
-                    'head_colour':self.head_colour[idx],
+                    'head_color':self.head_color[idx],
                     'cap':self.cap[idx],
-                    'cap_colour':self.cap_colour[idx],
+                    'cap_color':self.cap_color[idx],
                     'body':self.body[idx],
-                    'body_colour':self.body_colour[idx],
+                    'body_color':self.body_color[idx],
                     'bags':self.bags[idx],
                     'umbrella':self.umbrella[idx],
                     'face':self.face[idx],
                     'leg':self.leg[idx],
-                    'leg_colour':self.leg_colour[idx],
+                    'leg_color':self.leg_color[idx],
                     'foot':self.foot[idx],                      
-                    'foot_colour':self.foot_colour[idx],
+                    'foot_color':self.foot_color[idx],
                     'accessories':self.accessories[idx],
                     'position':self.position[idx],
                     'race':self.race[idx]

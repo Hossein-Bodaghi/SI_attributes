@@ -29,14 +29,14 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Duke')
     parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
     parser.add_argument('--main_path',type = str,help = 'image_path = [./datasets/Market1501/Market-1501-v15.09.15/gt_bbox/,./datasets/PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
-    parser.add_argument('--train_path',type = str,help = '[./datasets/CA_Duke_Market/bbox_train,./datasets/Dukemtmc/bounding_box_train]',default = './datasets/CA_Duke_Market/bbox_train')
-    parser.add_argument('--test_path',type = str,help = '[./datasets/Dukemtmc/bounding_box_test,./datasets/CA_Duke_Market/bbox_test]',default = './datasets/CA_Duke_Market/bbox_test')
+    parser.add_argument('--train_path',type = str,help = '[./datasets/CA_Duke_Market/bbox_train,./datasets/Dukemtmc/bounding_box_train]',default = './datasets/Dukemtmc/bounding_box_train')
+    parser.add_argument('--test_path',type = str,help = '[./datasets/Dukemtmc/bounding_box_test,./datasets/CA_Duke_Market/bbox_test]',default = './datasets/Dukemtmc/bounding_box_test')
     parser.add_argument('--attr_path',type = str,help = '[CA_Market_with_id,PA100k_all_with_id,Market_attribute_with_id]',default = './attributes/CA_Market_with_id.npy' )
-    parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id,Duke_attribute_train_with_id,CA_Duke_Market_train_with_id]',default = './attributes/CA_Duke_Market_train_with_id.npy')
-    parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id,CA_Duke_test_with_id,CA_Duke_Market_test_with_id]',default = './attributes/CA_Duke_Market_test_with_id.npy')
+    parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id,Duke_attribute_train_with_id,CA_Duke_Market_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
+    parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id,CA_Duke_test_with_id,CA_Duke_Market_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
@@ -101,7 +101,7 @@ else:
     
     train_idx = np.arange(len(attr_train['img_names']))
     if args.dataset == 'CA_Duke':
-        test_idx = np.arange(len(attr_test['attributes']))
+        test_idx = np.arange(len(attr_test['id']))
         valid_idx = test_idx
     else:
         test_idx = np.arange(len(attr_test['img_names']))
@@ -252,7 +252,7 @@ if part_based:
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
-                      branch_names={k: v.shape[1] for k, v in attr.items() if k not in ['id','img_names','names']},
+                      branch_names={k: v.shape[1] for k, v in attr_train.items() if k not in ['id','img_names','names']},
                       feature_selection = None)
 else:
     
