@@ -64,7 +64,9 @@ part_based = True if args.training_strategy == 'categorized' else False # if cat
 cross_domain = True if args.cross_domain == 'y' else False # if categotized, for each part one tesor will be genetrated
                                                                         # elif vectorize, only an attribute vector will be generated 
 
-if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
+M_or_M_attr_or_PA = args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k'
+
+if M_or_M_attr_or_PA:
     main_path = args.main_path   
     path_attr = args.attr_path 
     attr = data_delivery(main_path,
@@ -88,7 +90,6 @@ if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dat
         valid_idx = validation_idx(test_idx)
 
 else:
-    
     train_img_path = args.train_path
     test_img_path = args.test_path
     path_attr_train = args.attr_path_train
@@ -96,6 +97,7 @@ else:
     
     attr_train = data_delivery(train_img_path, path_attr=path_attr_train,
                                need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
+
     attr_test = data_delivery(test_img_path, path_attr=path_attr_test,
                               need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
     
@@ -109,13 +111,13 @@ else:
         
     print('\n', 'train-set specifications') 
     for key , value in attr_train.items():   
-        try: print(key , 'size is: \t {}'.format((value.size())))
+        try: print(key , 'size is: \t\t {}'.format((value.size())))
         except:
           print(key)
    
     print('\n', 'test-set specifications') 
     for key , value in attr_test.items():
-        try: print(key , 'size is: \t {}'.format((value.size())))
+        try: print(key , 'size is: \t\t {}'.format((value.size())))
         except:
           print(key)
 
@@ -123,93 +125,52 @@ else:
 ''' Delivering data as attr dictionaries '''
 
 train_transform =  transforms.Compose([transforms.RandomRotation(degrees=10),
-                            transforms.RandomHorizontalFlip(),
-                            transforms.ColorJitter(saturation=[0.8,1.25], brightness = (0.8, 1.2), contrast = (0.8, 1.2)),
-                            transforms.RandomPerspective(distortion_scale=0.2, p = 0.8),
-                            # LGT(probability=0.8, sl=0.02, sh=0.8, r1=0.8)
-                            ])
+                        transforms.RandomHorizontalFlip(),
+                        transforms.ColorJitter(saturation=[0.8,1.25], brightness = (0.8, 1.2), contrast = (0.8, 1.2)),
+                        transforms.RandomPerspective(distortion_scale=0.2, p = 0.8),
+                        # LGT(probability=0.8, sl=0.02, sh=0.8, r1=0.8)
+                        ])
+
 #torchvision.transforms.RandomPerspective(distortion_scale, p)
 
-if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
-        
-    train_data = CA_Loader(img_path=main_path,
-                              attr=attr,
-                              resolution=(256,128),
-                              transform=train_transform,
-                              indexes=train_idx,
-                              dataset = args.dataset,
-                              need_attr = not part_based,
-                              need_collection = part_based,
-                              need_id = False,
-                              two_transforms = True)
-    
-    test_data = CA_Loader(img_path=main_path,
-                              attr=attr,
-                              resolution=(256, 128),
-                              indexes=test_idx,
-                              dataset = args.dataset,
-                              need_attr = not part_based,
-                              need_collection = part_based,
-                              need_id = False,
-                              two_transforms = True) 
+train_data = CA_Loader(img_path=main_path if M_or_M_attr_or_PA else train_img_path,
+                            attr=attr if M_or_M_attr_or_PA else attr_train,
+                            resolution=(256,128),
+                            transform=train_transform,
+                            indexes=train_idx,
+                            dataset = args.dataset,
+                            need_attr = not part_based,
+                            need_collection = part_based,
+                            need_id = False,
+                            two_transforms = True) 
 
-    valid_data = CA_Loader(img_path=main_path,
-                              attr=attr,
-                              resolution=(256, 128),
-                              indexes=valid_idx,
-                              dataset = args.dataset,
-                              need_attr = not part_based,
-                              need_collection = part_based,
-                              need_id = False,
-                              two_transforms = True)     
+test_data = CA_Loader(img_path=main_path if M_or_M_attr_or_PA else test_img_path,
+                            attr=attr if M_or_M_attr_or_PA else attr_test,
+                            resolution=(256, 128),
+                            indexes=test_idx,
+                            dataset = args.dataset,
+                            need_attr = not part_based,
+                            need_collection = part_based,
+                            need_id = False,
+                            two_transforms = False) 
 
+valid_data = CA_Loader(img_path=main_path if M_or_M_attr_or_PA else test_img_path,
+                            attr=attr if M_or_M_attr_or_PA else attr_test,
+                            resolution=(256, 128),
+                            indexes=valid_idx,
+                            dataset = args.dataset,
+                            need_attr = not part_based,
+                            need_collection = part_based,
+                            need_id = False,
+                            two_transforms = False)  
 
-    if args.training_part == 'all':
-        weights = attr_weight(attr=attr, effective=args.loss_weights, device=device, beta=0.99)
-    else:
-    
-        weights = attr_weight(attr={key: attr[key] for key in args.training_part.split(',')},
-        effective = args.loss_weights, device=device, beta=0.99)
-        
-        train_data.__dict__ = resampler(train_data.__dict__, args.training_part, args.sampler_max)
-        
+if args.training_part == 'all':      
+    weights = attr_weight(attr=attr if M_or_M_attr_or_PA else attr_train, effective=args.loss_weights, device=device, beta=0.99)
 else:
-    train_data = CA_Loader(img_path=train_img_path,
-                              attr=attr_train,
-                              resolution=(256,128),
-                              transform=train_transform,
-                              indexes=train_idx,
-                              dataset = args.dataset,
-                              need_attr = not part_based,
-                              need_collection = part_based,
-                              need_id = False,
-                              two_transforms = False) 
-    test_data = CA_Loader(img_path=test_img_path,
-                              attr=attr_test,
-                              resolution=(256, 128),
-                              indexes=test_idx,
-                              dataset = args.dataset,
-                              need_attr = not part_based,
-                              need_collection = part_based,
-                              need_id = False,
-                              two_transforms = True) 
+    weights = attr_weight(attr={key: attr[key] for key in args.training_part.split(',')},
+    effective=args.loss_weights, device=device, beta=0.99)
+    train_data.__dict__ = resampler(train_data.__dict__, args.training_part, args.sampler_max)
     
-    valid_data = CA_Loader(img_path=test_img_path,
-                              attr=attr_test,
-                              resolution=(256, 128),
-                              indexes=valid_idx,
-                              dataset = args.dataset,
-                              need_attr = not part_based,
-                              need_collection = part_based,
-                              need_id = False,
-                              two_transforms = True)  
-    if args.training_part == 'all':      
-        weights = attr_weight(attr=attr_train, effective=args.loss_weights, device=device, beta=0.99)
-    else:
-        weights = attr_weight(attr={key: attr[key] for key in args.training_part.split(',')},
-        effective=args.loss_weights, device=device, beta=0.99)
-        train_data.__dict__ = resampler(train_data.__dict__, args.training_part, args.sampler_max)
-        
 part_loss = part_data_delivery(weights, dataset = args.dataset, device = device)
 
 batch_size = 32
@@ -240,10 +201,13 @@ if args.loss_weights == 'dynamic':
     weight_nets = {}
     for key in weights:
         weight_nets.update({key:Loss_weighting(weights_dim=len(weights[key]))})
+
 ### freezing the network
-params = model.parameters()
-for idx, param in enumerate(params):
-    if idx <= 214: param.requires_grad = False
+if args.training_strategy == 'categorized':
+    params = model.parameters()
+    for idx, param in enumerate(params):
+        param.requires_grad = False
+        #if idx <= 214: param.requires_grad = False
     
 if part_based:
     attr_net = mb_CA_auto_build_model(
@@ -255,15 +219,9 @@ if part_based:
                       branch_names={k: v.shape[1] for k, v in attr_train.items() if k not in ['id','img_names','names']},
                       feature_selection = None)
 else:
-    
-    if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
-        attr_dim = len(attr['names'])
-    else:
-        attr_dim = len(attr_train['names'])
-    if cross_domain:
-        attr_net = attributes_model(model, feature_dim = 512, attr_dim = 79) # change attr_dim based on your source network attributes dimentions
-    else:    
-        attr_net = attributes_model(model, feature_dim = 512, attr_dim = attr_dim)
+    attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
+
+    attr_net = attributes_model(model, feature_dim = 512, attr_dim = 79 if cross_domain else attr_dim)
 
 if args.trained_multi_branch is not None:
     trained_net = torch.load(args.trained_multi_branch)
@@ -282,8 +240,7 @@ print('baseline has {} parameters'.format(baseline_size),
 
 params = attr_net.parameters()
 
-lr = 3.5e-3
-optimizer = torch.optim.Adam(params, lr=lr, betas=(0.9, 0.99), eps=1e-08)
+optimizer = torch.optim.Adam(params, lr=args.lr, betas=(0.9, 0.99), eps=1e-08)
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 10, 17], gamma=0.9)
 
 #%%
@@ -336,7 +293,6 @@ if args.mode == 'train':
 #%%
 if args.mode == 'eval':
     import pandas as pd
-    
 
     if cross_domain:
         predicts, targets = take_out_multi_branch(attr_net = attr_net,
@@ -359,7 +315,7 @@ if args.mode == 'eval':
                                        part_loss = part_loss,
                                        categorical = part_based)
     
-    if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k': 
+    if M_or_M_attr_or_PA: 
         if cross_domain:
             pass
         else:
