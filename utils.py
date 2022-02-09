@@ -73,7 +73,6 @@ def common_attr(predicts, targets):
         new_targets[:, 0] = targets[:,0]            
 
         new_predicts[:, 1] = predicts[:,1]
-
         new_targets[:, 1] = targets[:,7]  
 
         new_predicts[:, 2] = predicts[:,17]
@@ -81,9 +80,6 @@ def common_attr(predicts, targets):
 
         new_predicts[:, 3] = predicts[:, 16]
         new_targets[:, 3] = targets[:, 11]
-
-        new_predicts[:, 4] = predicts[:, 19]
-        new_targets[:, 4] = targets[:, 22]  
 
         new_predicts[:,4:7] = predicts[:,19:22]
         new_targets[:,4:7] = targets[:,22:25]          
@@ -501,3 +497,33 @@ class RandomErasing(object):
                 return self.to_pil_image(img)
 
         return self.to_pil_image(img)
+    
+def show_loss(name,train_path,test_path,device):
+
+    im = torch.load(test_path,map_location= torch.device(device))[:]
+    im2 = torch.load(train_path,map_location= torch.device(device))[:]
+    plt.figure('train')
+    
+    plt.xlabel('Epoch')
+    plt.ylabel(name)
+    plt.plot(im2, label='train')
+    plt.plot(im, label = 'test')
+    # plt.legend([plt_train, plt_test], ['train_'+name , 'val_'+name])
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    for e, v in enumerate(im):
+        if e%1 ==0:
+            plt.text(e, v, '{:.2}'.format(v), color='g', fontsize= 'large') 
+            plt.text(e, im2[e], '{:.2}'.format(im2[e]), color='r', fontsize= 'large')
+    plt.show()
+    
+def show_loss_list(title, name, pathes, labels, device):
+    
+    plt.figure(title) 
+    plt.xlabel('Epoch')
+    plt.ylabel(name)
+    for idx,path in enumerate(pathes):
+        im = torch.load(path, map_location= torch.device(device))[:]
+        plt.plot(im, label = labels[idx])
+    # plt.legend([plt_train, plt_test], ['train_'+name , 'val_'+name])
+    plt.legend(loc='lower right', borderaxespad=0.)
+    plt.show()
