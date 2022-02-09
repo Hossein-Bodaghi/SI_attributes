@@ -1375,27 +1375,33 @@ class mb_CA_auto_build_model(nn.Module):
 
     def get_feature(self, x, get_attr=True, get_feature=True, get_collection=False):
         
-        out_conv4 = self.out_layers_extractor(x, 'out_conv3')
-        # The path for multi-branches for attributes 
-        out_head = self.attr_branch(out_conv4, self.conv_head, self.head_fc, self.head_clf, need_feature=True)          
-        out_body = self.attr_branch(out_conv4, self.conv_body, self.body_fc, self.body_clf, need_feature=True)     
-        out_body_type = self.attr_branch(out_conv4, self.conv_body_type, self.body_type_fc, self.body_type_clf, need_feature=True)          
-        out_leg = self.attr_branch(out_conv4, self.conv_leg ,self.leg_fc, self.leg_clf, need_feature=True)           
-        out_foot = self.attr_branch(out_conv4, self.conv_foot, self.foot_fc, self.foot_clf, need_feature=True)            
-        out_gender = self.attr_branch(out_conv4, self.conv_gender, self.gender_fc, self.gender_clf, need_feature=True)             
-        out_bags = self.attr_branch(out_conv4, self.conv_bags, self.bags_fc, self.bags_clf, need_feature=True)            
-        out_body_colour = self.attr_branch(out_conv4, self.conv_body_color, self.body_color_fc, self.body_color_clf, need_feature=True)             
-        out_leg_colour = self.attr_branch(out_conv4, self.conv_leg_color, self.leg_color_fc, self.leg_color_clf, need_feature=True)              
-        out_foot_colour = self.attr_branch(out_conv4, self.conv_foot_color, self.foot_color_fc, self.foot_color_clf, need_feature=True)  
+        if self.feature_dim == 512:
+            out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
+        elif self.feature_dim == 384:
+            out_conv4 = self.out_layers_extractor(x, 'out_conv3')  
+        else:
+            raise Exception('main_cov_size should be 384 or 512')
         
-        # The path for person re-id:
+        out_features = {}
+
+        for k in self.branch_names.keys():
+            out_features.setdefault(k, self.attr_branch(out_conv4 if self.feat_indices == None else torch.index_select(out_conv4, 1, self.feat_indices[0]),
+                                                            fc_layer = getattr(self,'fc_'+k),
+                                                            clf_layer = getattr(self,'clf_'+k),
+                                                            conv_layer = getattr(self,'conv_'+k), need_feature = True)
+            )
+
         del out_conv4
+        out_fc_branches = [item[0] for item in list(out_features.values())]
+        outputs_clfs = {}
+        for k, v in out_features.items():
+            outputs_clfs.update({k: v[1]})
+
         x = self.out_layers_extractor(x, 'out_fc')
-        x = [out_head, out_body, out_body_type, out_leg,
-                   out_foot, out_gender, out_bags, out_body_colour,
-                   out_leg_colour, out_foot_colour, x]
-        outputs = torch.cat(x, dim=1)
-        return outputs
+
+        outputs_fcs = torch.cat((torch.cat(out_fc_branches, dim=1),x), dim=1)
+
+        return outputs_fcs, outputs_clfs
         
     
     def vector_features(self, x):
@@ -1420,7 +1426,8 @@ class mb_CA_auto_build_model(nn.Module):
         x = x.view(x.size(0), -1)
         x = fc_layer(x)
         if need_feature:
-                return x
+                out = clf_layer(x)
+                return x, out
         out = clf_layer(x)
         return out 
     

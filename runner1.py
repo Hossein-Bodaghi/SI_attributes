@@ -29,14 +29,8 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Duke')
-    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
-    parser.add_argument('--main_path',type = str,help = 'image_path = [./datasets/Market1501/Market-1501-v15.09.15/gt_bbox/,./datasets/PA-100K/release_data/release_data/]',default = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/')
-    parser.add_argument('--train_path',type = str,help = '[./datasets/CA_Duke_Market/bbox_train,./datasets/Dukemtmc/bounding_box_train]',default = './datasets/Dukemtmc/bounding_box_train')
-    parser.add_argument('--test_path',type = str,help = '[./datasets/Dukemtmc/bounding_box_test,./datasets/CA_Duke_Market/bbox_test]',default = './datasets/Dukemtmc/bounding_box_test')
-    parser.add_argument('--attr_path',type = str,help = '[CA_Market_with_id,PA100k_all_with_id,Market_attribute_with_id]',default = './attributes/CA_Market_with_id.npy' )
-    parser.add_argument('--attr_path_train',type = str,help =' [CA_Duke_train_with_id,Duke_attribute_train_with_id,CA_Duke_Market_train_with_id]',default = './attributes/CA_Duke_train_with_id.npy')
-    parser.add_argument('--attr_path_test',type = str,help ='[Duke_attribute_test_with_id,CA_Duke_test_with_id,CA_Duke_Market_test_with_id]',default = './attributes/CA_Duke_test_with_id.npy')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
@@ -59,6 +53,37 @@ def parse_args():
 
 args = parse_args()
 
+if args.dataset == 'CA_Market':
+    main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
+    attr_path = './attributes/CA_Market_with_id.npy'
+
+elif args.dataset == 'Market_attribute':
+    main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
+    path_attr = './attributes/Market_attribute_with_id.npy'
+
+elif args.dataset == 'PA100k':
+    main_path = './datasets/PA-100K/release_data/release_data/'
+    path_attr = './attributes/PA100k_all_with_id.npy'
+
+elif args.dataset == 'CA_Duke':
+    train_img_path = './datasets/Dukemtmc/bounding_box_train'
+    test_img_path = './datasets/Dukemtmc/bounding_box_test'
+    path_attr_train = './attributes/CA_Duke_train_with_id.npy'
+    path_attr_test = './attributes/CA_Duke_test_with_id.npy'
+
+elif args.dataset == 'Duke_attribute':
+    train_img_path = './datasets/Dukemtmc/bounding_box_train'
+    test_img_path = './datasets/Dukemtmc/bounding_box_test'
+    path_attr_train = './attributes/Duke_attribute_train_with_id.npy'
+    path_attr_test = './attributes/Duke_attribute_test_with_id.npy'
+
+elif args.dataset == 'CA_Duke_Market':
+    train_img_path = './datasets/CA_Duke_Market/bbox_train'
+    test_img_path = './datasets/CA_Duke_Market/bbox_test'
+    path_attr_train = './attributes/CA_Duke_Market_train_with_id.npy'
+    path_attr_test = './attributes/CA_Duke_Market_test_with_id.npy'
+
+
 ''' Delivering data as attr dictionaries '''
 part_based = True if args.training_strategy == 'categorized' else False # if categotized, for each part one tesor will be genetrated
 cross_domain = True if args.cross_domain == 'y' else False # if categotized, for each part one tesor will be genetrated
@@ -67,8 +92,6 @@ cross_domain = True if args.cross_domain == 'y' else False # if categotized, for
 M_or_M_attr_or_PA = args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k'
 
 if M_or_M_attr_or_PA:
-    main_path = args.main_path   
-    path_attr = args.attr_path 
     attr = data_delivery(main_path,
                   path_attr=path_attr,
                   need_parts=part_based,
@@ -76,7 +99,7 @@ if M_or_M_attr_or_PA:
                   dataset = args.dataset)
     
     for key , value in attr.items():
-      try: print(key , 'size is: \t {}'.format((value.size())))
+      try: print(key , 'size is: \t\t {}'.format((value.size())))
       except:
         print(key)
         
@@ -90,11 +113,6 @@ if M_or_M_attr_or_PA:
         valid_idx = validation_idx(test_idx)
 
 else:
-    train_img_path = args.train_path
-    test_img_path = args.test_path
-    path_attr_train = args.attr_path_train
-    path_attr_test = args.attr_path_test
-    
     attr_train = data_delivery(train_img_path, path_attr=path_attr_train,
                                need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
 
@@ -216,7 +234,7 @@ if part_based:
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
-                      branch_names={k: v.shape[1] for k, v in attr_train.items() if k not in ['id','img_names','names']},
+                      branch_names={k: v.shape[1] for k, v in attr.items() if k not in ['id','img_names','names']},
                       feature_selection = None)
 else:
     attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
@@ -279,7 +297,7 @@ if args.mode == 'train':
                               save_path = save_path,  
                               part_loss = part_loss,
                               device = device,
-                              version = 'CA_bullshit_osnet_msmt17',
+                              version = 'CA_bullshit_osnet',
                               categorical = part_based,
                               resume=False,
                               loss_train = None,
@@ -308,13 +326,54 @@ if args.mode == 'eval':
         attr_metrics.append(IOU(predicts, targets))
                 
     else:
-        attr_metrics = dict_evaluating_multi_branch(attr_net = attr_net,
-                                       test_loader = test_loader,
-                                       save_path = save_path,
-                                       device = device,
-                                       part_loss = part_loss,
-                                       categorical = part_based)
-    
+        query_path = './Market-1501-v15.09.15/query/'
+        gallery_path = './Market-1501-v15.09.15/bounding_box_test/'
+        path_attr = './attributes/total_attr.npy'
+
+        query = data_delivery('./datasets/Market1501/Market-1501-v15.09.15/query/',
+                    path_attr=path_attr,
+                    need_parts=part_based,
+                    need_attr=not part_based,
+                    dataset = args.dataset)
+
+        query = data_delivery(query_path,
+                            path_attr=path_attr,
+                            double = False,
+                            need_collection=False,
+                            need_attr=True)
+
+        gallery = data_delivery(gallery_path,
+                                path_attr=path_attr,
+                                only_id=True,
+                                double = False,
+                                need_collection=False,
+                                need_attr=True)
+
+        query_idx = np.arange(len(query['img_names']))
+        
+        query_data = CA_Loader(img_path='./datasets/Market1501/Market-1501-v15.09.15/query/',
+                            attr=query,
+                            resolution=(256, 128),
+                            indexes=query_idx,
+                            dataset = args.dataset,
+                            need_attr = not part_based,
+                            need_collection = part_based,
+                            need_id = False,
+                            two_transforms = False)  
+
+        query_loader = DataLoader(query_data,batch_size=100,shuffle=False)
+
+        attr_metrics, dist_matrix = dict_evaluating_multi_branch(attr_net = attr_net,
+                                                    test_loader = test_loader,
+                                                    query_loader=query_loader,
+                                                    save_path = save_path,
+                                                    device = device,
+                                                    part_loss = part_loss,
+                                                    categorical = part_based)
+                                                    
+        from evaluation import cmc_map_fromdist
+        concat_ranks = cmc_map_fromdist(query, gallery, dist_matrix['concat'], feature_mode='concat', max_rank=10)
+
     if M_or_M_attr_or_PA: 
         if cross_domain:
             pass
@@ -336,7 +395,11 @@ if args.mode == 'eval':
     print('\n','the mean of iou is: ',str(iou_result.mean().item()))
 
     iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
- 
+    
+
+    
+
+
     metrics_result = attr_metrics[0][:5]
 
     attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T,
