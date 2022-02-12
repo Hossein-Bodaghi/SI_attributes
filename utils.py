@@ -161,7 +161,7 @@ def validation_idx(test_idx, ratio=5):
 def attr_number(attr):
     attr_numbers = {}
     for key in attr:
-        if key == 'img_names' or key == 'id' or key == 'names':
+        if key == 'img_names' or key == 'id' or key == 'cam_id' or key == 'names':
             pass
         else:
             number = torch.sum(attr[key], dim=0)

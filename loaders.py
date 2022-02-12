@@ -104,7 +104,8 @@ class CA_Loader(Dataset):
         
         # id variables:
         if self.need_id:
-            self.id = train_ids
+            self.id = attr['id'][indexes]
+            self.cam_id = attr['cam_id'][indexes]
         
         # attributes variables:
             
@@ -260,7 +261,7 @@ class CA_Loader(Dataset):
                     'race':self.race[idx]
                     }) 
         if self.need_id:
-            out.update({'id':self.id[idx]})
+            out.update({'id':self.id[idx], 'cam_id':self.cam_id[idx]})
             
         return out
 

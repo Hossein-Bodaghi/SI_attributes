@@ -17,6 +17,7 @@ import os
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from utils import part_data_delivery
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #%%
@@ -550,7 +551,7 @@ def dict_training_dynamic_loss(num_epoch,
             else:
                 print('test f1 improved','\n')                
 #%%
-def dict_evaluating_multi_branch(attr_net, test_loader, save_path, device, part_loss, categorical):
+def dict_evaluating_multi_branch(attr_net, test_loader, query_loader, save_path, device, part_loss, categorical):
 
     attr_net = attr_net.to(device)
     # evaluation:     
@@ -558,21 +559,46 @@ def dict_evaluating_multi_branch(attr_net, test_loader, save_path, device, part_
     with torch.no_grad():
         targets = []
         predicts = []
+        test_features = []
+        query_features = []
         for idx, data in enumerate(test_loader):
             
             for key, _ in data.items():
                 data[key] = data[key].to(device)
                 
             # forward step
-            out_data = attr_net.forward(data['img'])           
+            out_features, out_data = attr_net.get_feature(data['img'], method='baseline')
+
             y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
             predicts.append(y_attr.to('cpu'))
             targets.append(y_target.to('cpu'))
+
+            test_features.append(out_features)
+        
+        for idx, data_query in enumerate(query_loader):
+            
+            for key, _ in data.items():
+                data_query[key] = data_query[key].to(device)
+                
+            # forward step
+            out_features_q, out_data_q = attr_net.get_feature(data_query['img'], method='baseline')
+
+            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+            predicts.append(y_attr.to('cpu'))
+            targets.append(y_target.to('cpu'))
+
+            query_features.append(out_features_q)
+
+
+    test_features = torch.cat(test_features)
+    query_features = torch.cat(query_features)   
+    dist_matrix = torch.cdist(query_features, test_features, compute_mode='use_mm_for_euclid_dist_if_necessary')
+
     predicts = torch.cat(predicts)
     targets = torch.cat(targets)   
     iou_result = IOU(predicts, targets)
     test_attr_metrics = tensor_metrics(y_target.float(), y_attr)           
-    return [test_attr_metrics, iou_result]
+    return [test_attr_metrics, iou_result], dist_matrix
 #%%
 def take_out_multi_branch(attr_net,test_loader,save_path,device,part_loss,categorical):
 

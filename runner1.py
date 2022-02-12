@@ -17,7 +17,7 @@ from loaders import CA_Loader
 # torch requirements
 from torch.utils.data import DataLoader
 from torchvision import transforms
-import torch
+import torch, re, os
 import argparse
 # others
 import numpy as np
@@ -37,13 +37,12 @@ def parse_args():
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
     parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 1)
     parser.add_argument('--num_worst',type = int,help = 'to plot how many of the worst images in eval mode',default = 10)
+    parser.add_argument('--epoch',type = float,help = 'number epochs',default = 30)
     parser.add_argument('--lr',type = float,help = 'learning rate',default = 3.5e-5)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
-    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_msmt17.pth')
-    parser.add_argument('--trained_multi_branch',type = str,help = 'path of trained attr_nets [ain_osnet_CA_Duke,simple_osnet_Duke_attribute,simple_osnet_CA_Duke]',default=None)
-    parser.add_argument('--save_attr_metrcis',type = str,help = 'path to save attributes metrics',default='./results/mb_conv3_12branches_nowei_CA_network/attr_metrics.xlsx')
+    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_market.pth')
     parser.add_argument('--cross_domain',type = str,help = 'y/n',default='n')
     args = parser.parse_args()
     return args
@@ -53,9 +52,18 @@ def parse_args():
 
 args = parse_args()
 
+version = args.dataset+'_'+args.training_strategy[:3]+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
+save_attr_metrcis = './results/'+version+'/attr_metrics.xlsx'
+
+if os.path.exists('./results/'+version+'/best_attr_net.pth'):
+    trained_multi_branch = './results/'+version+'/best_attr_net.pth'
+else:
+    trained_multi_branch = None
+
 if args.dataset == 'CA_Market':
     main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
-    attr_path = './attributes/CA_Market_with_id.npy'
+    path_attr = './attributes/CA_Market_with_id.npy'
+    path_query = './datasets/Market1501/Market-1501-v15.09.15/query/'
 
 elif args.dataset == 'Market_attribute':
     main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
@@ -70,6 +78,7 @@ elif args.dataset == 'CA_Duke':
     test_img_path = './datasets/Dukemtmc/bounding_box_test'
     path_attr_train = './attributes/CA_Duke_train_with_id.npy'
     path_attr_test = './attributes/CA_Duke_test_with_id.npy'
+    path_query = './datasets/Dukemtmc/query/'
 
 elif args.dataset == 'Duke_attribute':
     train_img_path = './datasets/Dukemtmc/bounding_box_train'
@@ -97,7 +106,7 @@ if M_or_M_attr_or_PA:
                   need_parts=part_based,
                   need_attr=not part_based,
                   dataset = args.dataset)
-    
+    attr_train = attr
     for key , value in attr.items():
       try: print(key , 'size is: \t\t {}'.format((value.size())))
       except:
@@ -121,7 +130,7 @@ else:
     
     train_idx = np.arange(len(attr_train['img_names']))
     if args.dataset == 'CA_Duke':
-        test_idx = np.arange(len(attr_test['id']))
+        test_idx = np.arange(len(attr_test['img_names']))
         valid_idx = test_idx
     else:
         test_idx = np.arange(len(attr_test['img_names']))
@@ -169,7 +178,7 @@ test_data = CA_Loader(img_path=main_path if M_or_M_attr_or_PA else test_img_path
                             dataset = args.dataset,
                             need_attr = not part_based,
                             need_collection = part_based,
-                            need_id = False,
+                            need_id = True,
                             two_transforms = False) 
 
 valid_data = CA_Loader(img_path=main_path if M_or_M_attr_or_PA else test_img_path,
@@ -228,25 +237,40 @@ if args.training_strategy == 'categorized':
         #if idx <= 214: param.requires_grad = False
     
 if part_based:
-    attr_net = mb_CA_auto_build_model(
+    attr_net = mb12_CA_build_model(
                       model,
                       main_cov_size = 384,
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
-                      branch_names={k: v.shape[1] for k, v in attr.items() if k not in ['id','img_names','names']},
+                      #branch_names={k: v.shape[1] for k, v in attr_train.items() if k not in ['id','cam_id','img_names','names']},
                       feature_selection = None)
 else:
     attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
 
     attr_net = attributes_model(model, feature_dim = 512, attr_dim = 79 if cross_domain else attr_dim)
 
-if args.trained_multi_branch is not None:
-    trained_net = torch.load(args.trained_multi_branch)
+if trained_multi_branch is not None:
+    trained_net = torch.load(trained_multi_branch)
     attr_net.load_state_dict(trained_net)
 else:
     print('\n', 'there is no trained branches', '\n')
     
+
+"""check freezing
+modell = models.build_model(
+    name=args.baseline,
+    num_classes=751,
+    loss='softmax',
+    pretrained=False
+)
+utils.load_pretrained_weights(modell, args.baseline_path)
+identical = True
+for p1, p2 in zip(attr_net.model.parameters(), modell.parameters()):
+    if p1.data.ne(p2.data).sum() > 0:
+        identical = False
+        break
+"""
 attr_net = attr_net.to(device)
 baseline_size = get_n_params(model)
 mb_size = get_n_params(attr_net)
@@ -265,7 +289,7 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 10
 save_path = './results/'
 if args.mode == 'train':
     if args.loss_weights == 'dynamic':    
-        dict_training_dynamic_loss(num_epoch = 30,
+        dict_training_dynamic_loss(num_epoch = args.epoch,
                               attr_net = attr_net,
                               dataset = args.dataset,
                               weight_nets = weight_nets,
@@ -277,7 +301,7 @@ if args.mode == 'train':
                               save_path = save_path,  
                               part_loss = part_loss,
                               device = device,
-                              version = 'mb_conv3_12branches_dywei_CA_network',
+                              version = version,
                               categorical = part_based,
                               resume=False,
                               loss_train = None,
@@ -288,7 +312,7 @@ if args.mode == 'train':
                               test_attr_acc=None,  
                               stoped_epoch=None)
     else:
-        dict_training_multi_branch(num_epoch = 30,
+        dict_training_multi_branch(num_epoch = args.epoch,
                               attr_net = attr_net,
                               train_loader = train_loader,
                               test_loader = test_loader,
@@ -297,7 +321,7 @@ if args.mode == 'train':
                               save_path = save_path,  
                               part_loss = part_loss,
                               device = device,
-                              version = 'CA_bullshit_osnet',
+                              version = version,
                               categorical = part_based,
                               resume=False,
                               loss_train = None,
@@ -326,39 +350,24 @@ if args.mode == 'eval':
         attr_metrics.append(IOU(predicts, targets))
                 
     else:
-        query_path = './Market-1501-v15.09.15/query/'
-        gallery_path = './Market-1501-v15.09.15/bounding_box_test/'
-        path_attr = './attributes/total_attr.npy'
 
-        query = data_delivery('./datasets/Market1501/Market-1501-v15.09.15/query/',
+        query = data_delivery(path_query,
                     path_attr=path_attr,
                     need_parts=part_based,
+                    need_id=True,
                     need_attr=not part_based,
                     dataset = args.dataset)
 
-        query = data_delivery(query_path,
-                            path_attr=path_attr,
-                            double = False,
-                            need_collection=False,
-                            need_attr=True)
-
-        gallery = data_delivery(gallery_path,
-                                path_attr=path_attr,
-                                only_id=True,
-                                double = False,
-                                need_collection=False,
-                                need_attr=True)
-
         query_idx = np.arange(len(query['img_names']))
         
-        query_data = CA_Loader(img_path='./datasets/Market1501/Market-1501-v15.09.15/query/',
+        query_data = CA_Loader(img_path=path_query,
                             attr=query,
                             resolution=(256, 128),
                             indexes=query_idx,
                             dataset = args.dataset,
                             need_attr = not part_based,
                             need_collection = part_based,
-                            need_id = False,
+                            need_id = True,
                             two_transforms = False)  
 
         query_loader = DataLoader(query_data,batch_size=100,shuffle=False)
@@ -372,7 +381,7 @@ if args.mode == 'eval':
                                                     categorical = part_based)
                                                     
         from evaluation import cmc_map_fromdist
-        concat_ranks = cmc_map_fromdist(query, gallery, dist_matrix['concat'], feature_mode='concat', max_rank=10)
+        concat_ranks = cmc_map_fromdist(query_data, test_data, dist_matrix, feature_mode='concat', max_rank=10)
 
     if M_or_M_attr_or_PA: 
         if cross_domain:
@@ -397,19 +406,17 @@ if args.mode == 'eval':
     iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
     
 
-    
-
 
     metrics_result = attr_metrics[0][:5]
 
     attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T,
                                    index=attr_names, columns=['precision','recall','accuracy','f1','MA'])  
-    attr_metrics_pd.to_excel(args.save_attr_metrcis)
+    attr_metrics_pd.to_excel(save_attr_metrcis)
     
     mean_metrics = attr_metrics[0][5:]
     mean_metrics.append(iou_result.mean().item())
     mean_metrics_pd = pd.DataFrame(data = np.array(mean_metrics), index=['precision','recall','accuracy','f1','MA', 'IOU'])
-    peices = args.save_attr_metrcis.split('/')
+    peices = save_attr_metrcis.split('/')
     peices[-1] = 'mean_metrics.xlsx'
     path_mean_metrcis = '/'.join(peices)
     mean_metrics_pd.to_excel(path_mean_metrcis)

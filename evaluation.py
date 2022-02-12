@@ -163,7 +163,7 @@ def map_evaluation(query, gallery, dist_matrix, n = 10):
         m = 0 # the total positive until that array
         sum_precision = 0
         for j in range(n):
-            if query['id'][i] == gallery['id'][indices[i,j]]:
+            if query.id[i] == gallery.id[indices[i,j]]:
                 m += 1
                 sum_precision += m/(j+1)
         if m != 0:
@@ -204,14 +204,17 @@ def get_feature_fromloader(attr_net,query_loader, gallery_loader,feature_mode=['
 def cmc_map_fromdist(query, gallery, dist_matrix, feature_mode='concat', max_rank=20):
 
     mean_average_precision = map_evaluation(query, gallery, dist_matrix,  n=max_rank)    
-    print('ca_map on version 6.2\n features:{} is:'.format(feature_mode) , mean_average_precision)
-    
-    query_np = query['id'].to('cpu').numpy()
-    gallery_np = gallery['id'].to('cpu').numpy()
+    print('ca_map on version 6.2\nfeatures {} is:'.format(feature_mode) , mean_average_precision)
+    import numpy as np
+    query_np = np.asarray(query.id, dtype=np.int8)
+    gallery_np = np.asarray(gallery.id, dtype=np.int8)
+    gallery_cam_id_np = np.asarray(gallery.cam_id, dtype=np.int8)
+    query_cam_id_np = np.asarray(query.cam_id, dtype=np.int8)
     dist_matrix = dist_matrix.to('cpu').numpy()
     
-    rank = torchreid.metrics.rank.evaluate_rank(dist_matrix, query_np, gallery_np, query['cam_id'],
-                                                gallery['cam_id'], max_rank=max_rank, use_metric_cuhk03=False, use_cython=False)
+    rank = torchreid.metrics.rank.evaluate_rank(dist_matrix, query_np, gallery_np, query_cam_id_np,
+                                                gallery_cam_id_np, max_rank=max_rank, use_metric_cuhk03=False, use_cython=False)
+    
     print('os_map on version 6.2\n features:{}  is:'.format(feature_mode) , rank[1])
     return {'ca_map':mean_average_precision, 'os_rank':rank}
 

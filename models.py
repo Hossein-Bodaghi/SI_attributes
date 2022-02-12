@@ -1373,7 +1373,7 @@ class mb_CA_auto_build_model(nn.Module):
     
         return nn.Sequential(*layers)
 
-    def get_feature(self, x, get_attr=True, get_feature=True, get_collection=False):
+    def get_feature(self, x, get_attr=True, get_feature=True, method='both', get_collection=False):
         
         if self.feature_dim == 512:
             out_conv4 = self.out_layers_extractor(x, 'out_conv4')       
@@ -1398,9 +1398,13 @@ class mb_CA_auto_build_model(nn.Module):
             outputs_clfs.update({k: v[1]})
 
         x = self.out_layers_extractor(x, 'out_fc')
-
-        outputs_fcs = torch.cat((torch.cat(out_fc_branches, dim=1),x), dim=1)
-
+        out_fc_branches = torch.cat(out_fc_branches, dim=1)
+        if method == 'both':
+            outputs_fcs = torch.cat((out_fc_branches,x), dim=1)
+        elif method == 'baseline':
+            outputs_fcs = x
+        elif method == 'branches':
+            outputs_fcs = out_fc_branches
         return outputs_fcs, outputs_clfs
         
     

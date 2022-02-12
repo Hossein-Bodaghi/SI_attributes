@@ -6,6 +6,7 @@ Created on Wed Feb 17 17:06:30 2021
 @author: hossein
 """
 
+import numpy
 from utils import load_attributes, load_image_names
 
             
@@ -32,12 +33,15 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
     Returns
     -------
     '''
+    import numpy as np
     output = {}
     attr_vec = load_attributes(path_attr) # numpy array
     if need_attr: output.update({'attributes':attr_vec[:,:-1]})
     
     img_names = load_image_names(main_path)
-    output.update({'img_names':img_names,'id':attr_vec[:,-1]})
+    output.update({'img_names':img_names,
+                    'id':np.array([int(i.split('_')[0]) for i in img_names]),
+                    'cam_id':np.array([int(i.split('_')[1][1]) for i in img_names])})
             
     if need_parts:  
         if dataset == 'CA_Market':                        
