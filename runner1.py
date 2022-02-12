@@ -237,13 +237,13 @@ if args.training_strategy == 'categorized':
         #if idx <= 214: param.requires_grad = False
     
 if part_based:
-    attr_net = mb12_CA_build_model(
+    attr_net = mb_CA_auto_build_model(
                       model,
                       main_cov_size = 384,
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
-                      #branch_names={k: v.shape[1] for k, v in attr_train.items() if k not in ['id','cam_id','img_names','names']},
+                      branch_names={k: v.shape[1] for k, v in attr_train.items() if k not in ['id','cam_id','img_names','names']},
                       feature_selection = None)
 else:
     attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
@@ -254,7 +254,7 @@ if trained_multi_branch is not None:
     trained_net = torch.load(trained_multi_branch)
     attr_net.load_state_dict(trained_net)
 else:
-    print('\n', 'there is no trained branches', '\n')
+    print('\nthere is no trained branches', '\n')
     
 
 """check freezing
@@ -274,9 +274,9 @@ for p1, p2 in zip(attr_net.model.parameters(), modell.parameters()):
 attr_net = attr_net.to(device)
 baseline_size = get_n_params(model)
 mb_size = get_n_params(attr_net)
-print('baseline has {} parameters'.format(baseline_size), 
-      '\t', 'multi-branch net has {} parameters'.format(mb_size), '\n'
-      'multi-branch is {:.2f} times biger than baseline'.format(mb_size/baseline_size))
+print('baseline has {} parameters'.format(baseline_size),'\n'
+      'multi-branch net has {} parameters'.format(mb_size),'\n'
+      'multi-branch is {:.2f} times bigger than baseline\n'.format(mb_size/baseline_size))
 
 #%%
 
@@ -379,7 +379,7 @@ if args.mode == 'eval':
                                                     device = device,
                                                     part_loss = part_loss,
                                                     categorical = part_based)
-                                                    
+
         from evaluation import cmc_map_fromdist
         concat_ranks = cmc_map_fromdist(query_data, test_data, dist_matrix, feature_mode='concat', max_rank=10)
 
