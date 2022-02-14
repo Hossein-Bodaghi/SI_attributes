@@ -29,7 +29,7 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='Market_attribute')
     parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
@@ -130,7 +130,7 @@ else:
     
     train_idx = np.arange(len(attr_train['img_names']))
     if args.dataset == 'CA_Duke':
-        test_idx = np.arange(len(attr_test['img_names']))
+        test_idx = np.arange(len(attr_test['gender']))
         valid_idx = test_idx
     else:
         test_idx = np.arange(len(attr_test['img_names']))
@@ -235,7 +235,9 @@ if args.training_strategy == 'categorized':
     for idx, param in enumerate(params):
         param.requires_grad = False
         #if idx <= 214: param.requires_grad = False
-    
+
+branch_attrs_dims = {k: v.shape[1] for k, v in attr_train.items() if k not in ['id','cam_id','img_names','names']}
+
 if part_based:
     attr_net = mb_CA_auto_build_model(
                       model,
@@ -243,12 +245,12 @@ if part_based:
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
-                      branch_names={k: v.shape[1] for k, v in attr_train.items() if k not in ['id','cam_id','img_names','names']},
+                      branch_names=branch_attrs_dims,
                       feature_selection = None)
 else:
     attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
 
-    attr_net = attributes_model(model, feature_dim = 512, attr_dim = 79 if cross_domain else attr_dim)
+    attr_net = attributes_model(model, feature_dim = 512, attr_dim = sum(branch_attrs_dims.values()) if cross_domain else attr_dim)
 
 if trained_multi_branch is not None:
     trained_net = torch.load(trained_multi_branch)
@@ -288,7 +290,7 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 10
 #%%
 save_path = './results/'
 if args.mode == 'train':
-    if args.loss_weights == 'dynamic':    
+    if args.loss_weights == 'dynamic':
         dict_training_dynamic_loss(num_epoch = args.epoch,
                               attr_net = attr_net,
                               dataset = args.dataset,
