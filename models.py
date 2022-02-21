@@ -13,7 +13,7 @@ this is Hossein Bodaghies thesis
 import torch.nn as nn
 import torch
 from transformers import MBConvBlock, ScaledDotProductAttention
-
+import copy
 #%%
 from torchreid.models.osnet import Conv1x1, OSBlock
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -1294,7 +1294,7 @@ class mb_CA_auto_build_model(nn.Module):
                  sep_conv_size = 64,
                  branch_names = None,
                  feature_selection = None):
-        #[x for x in attr.keys() if x not in ['id','img_names','names']]
+
         super().__init__()
         self.feat_indices = feature_selection
         self.feature_dim = main_cov_size
@@ -1328,35 +1328,7 @@ class mb_CA_auto_build_model(nn.Module):
             # classifiers
             setattr(self, 'clf_'+k, nn.Linear(self.attr_dim, branch_names[k]))
 
-        """
-        self.convs = {}
-        self.branches['conv_'+k] = _make_layer(blocks[2],
-                                                    layers[2],
-                                                    self.feature_dim,
-                                                    self.sep_conv_size,
-                                                    reduce_spatial_size=False
-                                                    )
-        self.convs.setdefault(k, _make_layer(blocks[2],
-                                                    layers[2],
-                                                    self.feature_dim,
-                                                    self.sep_conv_size,
-                                                    reduce_spatial_size=False
-                                                    ).to(device))
-        self.convs = dict.fromkeys(branches.keys(), _make_layer(blocks[2],
-                                                    layers[2],
-                                                    self.feature_dim,
-                                                    self.sep_conv_size,
-                                                    reduce_spatial_size=False
-                                                    ))
-        for k in self.branches.keys():
-            self.fcs.setdefault(k, self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p).to(device))
-        self.fcs = {}
-        self.fcs = dict.fromkeys(branches.keys(), self._construct_fc_layer(self.attr_dim, self.attr_feat_dim, dropout_p=dropout_p))
-        self.clfs = {}
-        for k in self.branches.keys():
-            self.clfs.setdefault(k, nn.Linear(self.attr_dim, branches[k]).to(device))
-        self.clfs = dict(branches.keys(), nn.Linear(self.attr_dim, branches.values()))
-        """
+        
     def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
     
         if isinstance(fc_dims, int):
@@ -1450,6 +1422,141 @@ class mb_CA_auto_build_model(nn.Module):
                                                             fc_layer = getattr(self,'fc_'+k),
                                                             clf_layer = getattr(self,'clf_'+k),
                                                             conv_layer = getattr(self,'conv_'+k), need_feature = need_feature)
+            )
+
+        return out_attributes
+    
+    def save_baseline(self, saving_path):
+        torch.save(self.model.state_dict(), saving_path)
+        print('baseline model save to {}'.format(saving_path))
+
+
+
+class mb_CA_auto_same_depth_build_model(nn.Module):
+    
+    def __init__(self,
+                 model,
+                 branch_place,
+                 attr_dim = 128,
+                 dropout_p = 0.3,
+                 sep_conv_size = 64,
+                 branch_names = None,
+                 feature_selection = None):
+        #[x for x in attr.keys() if x not in ['id','img_names','names']]
+        super().__init__()
+        self.branch_place = branch_place
+        self.feat_indices = feature_selection
+        self.dropout_p = dropout_p 
+        self.global_avgpool = nn.AdaptiveAvgPool2d(1)
+        self.softmax = nn.Softmax(dim=1)
+        self.sigmoid = nn.Sigmoid()
+        self.model = model
+        self.sep_conv_size = sep_conv_size
+        self.attr_dim = attr_dim
+        self.branch_fcs = branch_names
+        self.layer_list = ['conv1', 'maxpool', 'conv2', 'conv3', 'conv4', 'conv5', 'global_avgpool', 'fc']
+        if self.feat_indices is not None:
+            self.feature_dim = 25
+        
+        self.attr_feat_dim = sep_conv_size
+        branches = {k:[] for k,v in self.branch_fcs.items()}
+        for k in self.branch_fcs.keys():
+            # convs
+            for layer in self.layer_list[self.layer_list.index(branch_place)+1:]:
+                branches[k].append(copy.deepcopy(getattr(model, layer)))
+                branches[k][-1].load_state_dict(getattr(model, layer).state_dict())
+
+            # classifiers
+            branches[k].append(nn.Linear(self.attr_dim, branch_names[k]))
+            setattr(self, 'branch_'+k, nn.Sequential(*branches[k]))
+
+        self.layer_list.append('clf')
+
+    def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
+    
+        if isinstance(fc_dims, int):
+            fc_dims = [fc_dims]
+    
+        layers = []
+        for dim in fc_dims:
+            layers.append(nn.Linear(input_dim, dim))
+            layers.append(nn.BatchNorm1d(dim))
+            layers.append(nn.ReLU(inplace=True))
+            if dropout_p is not None:
+                layers.append(nn.Dropout(p=dropout_p))
+            input_dim = dim
+    
+        return nn.Sequential(*layers)
+
+    def get_feature(self, x, get_attr=True, get_feature=True, method='both', get_collection=False):
+        
+        out_baseline = self.out_layers_extractor(x, self.branch_place) 
+        
+        out_features = {}
+
+        for k in self.branch_fcs.keys():
+            out_features.setdefault(k, self.attr_branch(out_baseline if self.feat_indices == None else torch.index_select(out_baseline, 1, self.feat_indices[0]),
+                                                            getattr(self,'branch_'+k),
+                                                            need_feature = True)
+            )
+
+        del out_baseline
+        out_fc_branches = [item[0] for item in list(out_features.values())]
+        outputs_clfs = {}
+        for k, v in out_features.items():
+            outputs_clfs.update({k: v[1]})
+
+        x = self.out_layers_extractor(x, 'out_fc')
+        out_fc_branches = torch.cat(out_fc_branches, dim=1)
+        if method == 'both':
+            outputs_fcs = torch.cat((out_fc_branches,x), dim=1)
+        elif method == 'baseline':
+            outputs_fcs = x
+        elif method == 'branches':
+            outputs_fcs = out_fc_branches
+        return outputs_fcs, outputs_clfs
+        
+    
+    def vector_features(self, x):
+        features = self.model(x)
+        out_attr = self.attr_lin(features) 
+        out_features = torch.cat(features, out_attr, dim=1)
+        return out_features
+        
+    def out_layers_extractor(self, x, layer):
+        out_os_layers = self.model.layer_extractor(x, layer) 
+        return out_os_layers   
+                
+    def attr_branch(self, x, branch_layers, need_feature=False):
+        ''' fc_layer should be a list of fully connecteds
+            clf_layer hould be a list of classifiers
+        '''
+        # handling conv layer
+        start_point = self.layer_list.index(self.branch_place)
+        
+        for idx, layer in enumerate(branch_layers):
+
+            if need_feature and self.layer_list[start_point+idx+1] == 'clf':
+                features = x
+                attr = layer(features)
+                return features, attr
+
+            if self.layer_list[start_point+idx+1] == 'fc':
+                x = x.view(x.size(0), -1)
+
+            x = layer(x)
+
+        return x 
+    
+    def forward(self, x, need_feature=False):
+
+        out_baseline = self.out_layers_extractor(x, self.branch_place)       
+        out_attributes = {}
+
+        for k in self.branch_fcs.keys():
+            out_attributes.setdefault(k, self.attr_branch(out_baseline if self.feat_indices == None else torch.index_select(out_baseline, 1, self.feat_indices[0]),
+                                                            getattr(self,'branch_'+k),
+                                                            need_feature = need_feature)
             )
 
         return out_attributes

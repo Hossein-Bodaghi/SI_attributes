@@ -9,7 +9,7 @@ Created on Tue Jan 11 20:07:29 2022
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot, common_attr
 from trainings import dict_training_multi_branch, dict_evaluating_multi_branch, take_out_multi_branch, dict_training_dynamic_loss
-from models import mb12_CA_build_model, attributes_model, Loss_weighting, mb_CA_auto_build_model
+from models import mb12_CA_build_model, attributes_model, Loss_weighting, mb_CA_auto_build_model, mb_CA_auto_same_depth_build_model
 from evaluation import metrics_print, total_metrics
 from delivery import data_delivery
 from metrics import tensor_metrics, IOU
@@ -29,7 +29,7 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='Market_attribute')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
     parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 1)
     parser.add_argument('--num_worst',type = int,help = 'to plot how many of the worst images in eval mode',default = 10)
     parser.add_argument('--epoch',type = float,help = 'number epochs',default = 30)
-    parser.add_argument('--lr',type = float,help = 'learning rate',default = 3.5e-5)
+    parser.add_argument('--lr',type = float,help = 'learning rate',default = 3.5e-2)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
@@ -106,6 +106,7 @@ if M_or_M_attr_or_PA:
                   need_parts=part_based,
                   need_attr=not part_based,
                   dataset = args.dataset)
+    
     attr_train = attr
     for key , value in attr.items():
       try: print(key , 'size is: \t\t {}'.format((value.size())))
@@ -124,6 +125,20 @@ if M_or_M_attr_or_PA:
 else:
     attr_train = data_delivery(train_img_path, path_attr=path_attr_train,
                                need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
+
+
+    '''train_img_path = './datasets/Dukemtmc/bounding_box_train'
+    test_img_path = './datasets/Dukemtmc/bounding_box_test'
+    path_attr_train = './attributes/CA_Duke_train_with_id.npy'
+    path_attr_test = './attributes/CA_Duke_test_with_id.npy'
+    path_query = './datasets/Dukemtmc/query/'
+    attr_train_ca = data_delivery(train_img_path, path_attr=path_attr_train,
+                               need_parts=part_based, need_attr=not part_based, dataset='CA_Duke')
+    a = 0
+    for i in range(attr_train['gender'].shape[0]):
+        if attr_train_ca['gender'][i] != attr_train['gender'][i]:
+            a += 1'''
+
 
     attr_test = data_delivery(test_img_path, path_attr=path_attr_test,
                               need_parts=part_based, need_attr=not part_based, dataset=args.dataset)
@@ -221,8 +236,45 @@ if args.baseline[:5] == 'osnet':
     )
     
     utils.load_pretrained_weights(model, args.baseline_path)
-else:
-    raise Exception("The SI feature_extractor for lu_person is not ready")
+elif args.baseline == 'lu_person':
+
+    from fastreid.engine import DefaultTrainer, default_argument_parser, launch, default_setup
+    from fastreid.config import get_cfg
+
+    def setup(args):
+        """
+        Create configs and perform basic setups.
+        """
+        cfg = get_cfg()
+        cfg.merge_from_file(args.config_file)
+        cfg.merge_from_list(args.opts)
+        cfg.freeze()
+        default_setup(cfg, args)
+        return cfg
+
+    args = default_argument_parser().parse_args()
+
+    args.config_file = './configs/CMDM/mgn_R50_moco.yml'
+    args.eval_only = True
+    args.opts = ['DATASETS.ROOT', 'datasets', 'DATASETS.KWARGS', 'data_name:duke', 
+    'MODEL.WEIGHTS', 'C:/Users/ASUS/Downloads/duke.pth', 'MODEL.DEVICE', 'cuda:0', 
+    'OUTPUT_DIR', 'logs/lup_moco/test/duke']
+    print("Command Line Args:", args)
+    
+    cfg = launch(setup,
+            args.num_gpus,
+            num_machines=args.num_machines, 
+            machine_rank=args.machine_rank,
+            dist_url=args.dist_url,
+            args=(args,),
+        )
+
+    if args.eval_only:
+        cfg.defrost()
+        cfg.MODEL.BACKBONE.PRETRAIN = False
+        si_calculate = False
+        
+    model = DefaultTrainer.build_model(cfg)
     
 if args.loss_weights == 'dynamic':
     weight_nets = {}
@@ -239,14 +291,23 @@ if args.training_strategy == 'categorized':
 branch_attrs_dims = {k: v.shape[1] for k, v in attr_train.items() if k not in ['id','cam_id','img_names','names']}
 
 if part_based:
-    attr_net = mb_CA_auto_build_model(
+    attr_net = mb_CA_auto_same_depth_build_model(
+                      model,
+                      branch_place = 'conv2',
+                      attr_dim = 512,
+                      dropout_p = 0.3,
+                      sep_conv_size = 64,
+                      branch_names=branch_attrs_dims,
+                      feature_selection = None)
+
+    '''attr_net = mb_CA_auto_build_model(
                       model,
                       main_cov_size = 384,
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
                       branch_names=branch_attrs_dims,
-                      feature_selection = None)
+                      feature_selection = None)'''
 else:
     attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
 
