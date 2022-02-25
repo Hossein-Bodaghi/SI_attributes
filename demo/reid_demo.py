@@ -49,12 +49,12 @@ def parse_args():
     parser.add_argument(
         '--source_clothes',
         help = 'path of source images which are shops items',
-        default = '/home/hossein/deep-person-reid/datasets/market1501/Market-1501-v15.09.15/bounding_box_test')
+        default = '/home/hossein/SI_attributes/datasets/Market1501/Market-1501-v15.09.15/gt_bbox')
     
     parser.add_argument(
         '--checkpoint',
         type=str,
-        default='/home/hossein/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth',
+        default='/home/hossein/SI_attributes/checkpoints/osnet_x1_0_market.pth',
         help='the checkpoint network to resume from')
     
     parser.add_argument(
@@ -64,13 +64,13 @@ def parse_args():
     parser.add_argument(
         '--all_features',
         type=str,
-        default='/home/hossein/anaconda3/envs/torchreid/deep-person-reid/my_osnet/demo/features/market_gallery_osnet.npy',
+        default='/home/hossein/SI_attributes/demo/features/market_gallery_osnet.npy',
         help='features of whole data that we want to retrieve')
     
     parser.add_argument(
         '--save_features',
         type=str,
-        default='/home/hossein/anaconda3/envs/torchreid/deep-person-reid/my_osnet/demo/features',
+        default='/home/hossein/SI_attributes/demo/features',
         help='features of whole data that we want to retrieve')
 
     args = parser.parse_args()

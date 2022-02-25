@@ -291,23 +291,23 @@ if args.training_strategy == 'categorized':
 branch_attrs_dims = {k: v.shape[1] for k, v in attr_train.items() if k not in ['id','cam_id','img_names','names']}
 
 if part_based:
-    attr_net = mb_CA_auto_same_depth_build_model(
-                      model,
-                      branch_place = 'conv2',
-                      attr_dim = 512,
-                      dropout_p = 0.3,
-                      sep_conv_size = 64,
-                      branch_names=branch_attrs_dims,
-                      feature_selection = None)
+    # attr_net = mb_CA_auto_same_depth_build_model(
+    #                   model,
+    #                   branch_place = 'conv2',
+    #                   attr_dim = 512,
+    #                   dropout_p = 0.3,
+    #                   sep_conv_size = 64,
+    #                   branch_names=branch_attrs_dims,
+    #                   feature_selection = None)
 
-    '''attr_net = mb_CA_auto_build_model(
+    attr_net = mb_CA_auto_build_model(
                       model,
                       main_cov_size = 384,
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
                       branch_names=branch_attrs_dims,
-                      feature_selection = None)'''
+                      feature_selection = None)
 else:
     attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
 
