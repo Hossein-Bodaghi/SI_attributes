@@ -777,7 +777,8 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
             # classifiers
             branches[k].append(Conv1x1(channels[idx], channels[idx]))
             branches[k].append(nn.AdaptiveAvgPool2d(1))
-            branches[k].append(self._construct_fc_layer(branch_names[k], channels[idx], dropout_p=None))
+            branches[k].append(self._construct_fc_layer(channels[idx], channels[idx], dropout_p=None))
+            branches[k].append(nn.Linear(channels[idx], branch_names[k]))
             setattr(self, 'branch_'+k, nn.Sequential(*branches[k]))
             '''# convs
             for layer in self.layer_list[self.layer_list.index(branch_place)+1:]:
