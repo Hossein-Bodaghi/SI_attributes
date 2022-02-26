@@ -762,23 +762,29 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
         branches = {k:[] for k,v in self.branch_fcs.items()}
         for k in self.branch_fcs.keys():
             # convs
-            idx = self.layer_list.index(branch_place)-1
+            if branch_place != 'conv5':
+                
+                idx = self.layer_list.index(branch_place)-2
 
-            for i, layer in enumerate(self.layer_list[self.layer_list.index(branch_place)+1:]):    
-                branches[k].append(_make_layer(
-                                                blocks[idx],
-                                                layers[idx],
-                                                self.layer_init_dim[idx+1] if i==0 else channels[idx],
-                                                channels[idx],
-                                                reduce_spatial_size=False if layer=='conv4' else True
-                                            ))
-                idx += 1
-
+                for i, layer in enumerate(self.layer_list[self.layer_list.index(branch_place)+1:]):
+                    idx += 1
+                    branches[k].append(_make_layer(
+                                                    blocks[idx],
+                                                    layers[idx],
+                                                    self.layer_init_dim[idx+1] if i==0 else channels[idx],
+                                                    channels[idx+1],
+                                                    reduce_spatial_size=False if layer=='conv4' else True
+                                                ))
+                
             # classifiers
-            branches[k].append(Conv1x1(channels[idx], channels[idx]))
-            branches[k].append(nn.AdaptiveAvgPool2d(1))
-            branches[k].append(self._construct_fc_layer(channels[idx], channels[idx], dropout_p=None))
-            branches[k].append(nn.Linear(channels[idx], branch_names[k]))
+            if branch_place == 'conv4' or branch_place == 'conv5':
+                idx = self.layer_list.index('conv4')-2
+                channels[idx+1] = 512
+            if branch_place != 'conv5':
+                branches[k].append(Conv1x1(channels[idx+1], channels[idx+1]))
+                branches[k].append(nn.AdaptiveAvgPool2d(1))
+            branches[k].append(self._construct_fc_layer(channels[idx+1], channels[idx+1], dropout_p=None))
+            branches[k].append(nn.Linear(channels[idx+1], branch_names[k]))
             setattr(self, 'branch_'+k, nn.Sequential(*branches[k]))
             '''# convs
             for layer in self.layer_list[self.layer_list.index(branch_place)+1:]:
@@ -850,7 +856,10 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
             clf_layer hould be a list of classifiers
         '''
         # handling conv layer
-        start_point = self.layer_list.index(self.branch_place)
+        if self.branch_place != 'conv5':
+            start_point = self.layer_list.index(self.branch_place)
+        else:
+            start_point = self.layer_list.index('conv4')
         
         for idx, layer in enumerate(branch_layers):
 
@@ -858,7 +867,8 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
                 features = x
                 attr = layer(features)
                 return features, attr
-
+            if layer == branch_layers[-2]:
+                x = x.view(x.size(0), -1)
             x = layer(x)
 
         return x 
