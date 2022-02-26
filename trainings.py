@@ -97,19 +97,14 @@ def CA_target_attributes_12(out_data, data, part_loss, need_tensor_max = False, 
     'calculte y_attr and y_target for categorical and vectorize formats'
     if categorical:
         m = 0
+        bces = ['body_type', 'gender', 'head_colour', 'body_colour', 'attributes', 'position', 'accessories'] 
         for key in part_loss:
-            if key == 'body_type' or key == 'gender' or key == 'position' or key == 'accessories':
+            if key in bces:
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
                 if m == 0:
                     y_target = data[key]
                 else:
                     y_target = torch.cat((y_target, data[key]),dim = 1)
-            elif key == 'body_colour':
-                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
-                if m == 0:
-                    y_target = data[key]
-                else:
-                    y_target = torch.cat((y_target, data[key]), dim = 1)
             else :
                 out_data[key] = softmax(out_data[key])
                 if m == 0:
