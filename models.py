@@ -783,6 +783,8 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
             if branch_place != 'conv5':
                 branches[k].append(Conv1x1(channels[idx+1], channels[idx+1]))
                 branches[k].append(nn.AdaptiveAvgPool2d(1))
+            else:
+                branches[k].append(nn.AdaptiveAvgPool2d(1))
             branches[k].append(self._construct_fc_layer(channels[idx+1], channels[idx+1], dropout_p=None))
             branches[k].append(nn.Linear(channels[idx+1], branch_names[k]))
             setattr(self, 'branch_'+k, nn.Sequential(*branches[k]))
