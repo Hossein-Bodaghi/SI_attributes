@@ -9,7 +9,7 @@ Created on Tue Jan 11 20:07:29 2022
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot, common_attr
 from trainings import dict_training_multi_branch, dict_evaluating_multi_branch, take_out_multi_branch, dict_training_dynamic_loss
-from models import mb12_CA_build_model, attributes_model, Loss_weighting, mb_CA_auto_build_model, mb_CA_auto_same_depth_build_model
+from models import attributes_model, Loss_weighting, mb_CA_auto_build_model, mb_CA_auto_same_depth_build_model
 from evaluation import metrics_print, total_metrics
 from delivery import data_delivery
 from metrics import tensor_metrics, IOU
@@ -30,7 +30,7 @@ torch.cuda.empty_cache()
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
-    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
@@ -43,6 +43,7 @@ def parse_args():
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
     parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_market.pth')
+    parser.add_argument('--branch_place',type = str,help = 'could be: conv1,maxpool,conv2,conv3,conv4,conv5,global_avgpool,fc',default='conv3')
     parser.add_argument('--cross_domain',type = str,help = 'y/n',default='n')
     args = parser.parse_args()
     return args
@@ -52,7 +53,12 @@ def parse_args():
 
 args = parse_args()
 
-version = args.dataset+'_'+args.training_strategy[:3]+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
+version = args.dataset+'_'+args.branch_place+'_'+args.training_strategy[:3]+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
+'''v = 0
+while os.path.isdir('results/'+version):'''
+
+
+
 save_attr_metrcis = './results/'+version+'/attr_metrics.xlsx'
 
 if os.path.exists('./results/'+version+'/best_attr_net.pth'):
@@ -291,23 +297,26 @@ if args.training_strategy == 'categorized':
 branch_attrs_dims = {k: v.shape[1] for k, v in attr_train.items() if k not in ['id','cam_id','img_names','names']}
 
 if part_based:
-    # attr_net = mb_CA_auto_same_depth_build_model(
-    #                   model,
-    #                   branch_place = 'conv2',
-    #                   attr_dim = 512,
-    #                   dropout_p = 0.3,
-    #                   sep_conv_size = 64,
-    #                   branch_names=branch_attrs_dims,
-    #                   feature_selection = None)
+    attr_net = mb_CA_auto_same_depth_build_model(
+                      model,
+                      branch_place = args.branch_place,
+                      dropout_p = 0.3,
+                      branch_names=branch_attrs_dims,
+                      feature_selection = None)
 
-    attr_net = mb_CA_auto_build_model(
+    for idx, param in enumerate(attr_net.branch_age.parameters()):
+        if param.requires_grad == False:
+            print('1')
+            
+    '''attr_net = mb_CA_auto_build_model(
                       model,
                       main_cov_size = 384,
                       attr_dim = 64,
                       dropout_p = 0.3,
                       sep_conv_size = 64,
                       branch_names=branch_attrs_dims,
-                      feature_selection = None)
+                      feature_selection = None)'''
+    
 else:
     attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
 
