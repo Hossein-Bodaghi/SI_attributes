@@ -77,8 +77,9 @@ def CA_part_loss_calculator(out_data, data, part_loss, categorical = True, dynam
             # print(key, '-->', out_data[key].size(), data[key].size(), loss_part)
     else:
         if categorical:
+            bces = ['body_type', 'gender', 'head_colour', 'body_colour', 'attributes', 'position', 'accessories'] 
             for key, loss in part_loss.items():
-                if key == 'body_type' or key == 'gender' or key == 'body_colour' or key == 'position' or key == 'accessories':
+                if key in bces:
                     loss_part = loss(out_data[key], data[key].float())
                 else :
                     loss_part = loss(out_data[key], data[key].argmax(dim=1))
