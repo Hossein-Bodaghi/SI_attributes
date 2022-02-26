@@ -47,16 +47,16 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
         if dataset == 'CA_Market':                        
             output.update({'gender':attr_vec[:,0].reshape(len(attr_vec), 1),
                         'head':attr_vec[:,1:6],
-                        'head_colour':attr_vec[:,6:8],
-                        'body':attr_vec[:,8:12],
-                        'body_type':attr_vec[:,12].reshape(len(attr_vec), 1),
-                        'body_colour':attr_vec[:,13:21],
-                        'bags':attr_vec[:,21:25],
-                        'leg':attr_vec[:,25:28],
-                        'leg_colour':attr_vec[:,28:37],
-                        'foot':attr_vec[:,37:40],                       
-                        'foot_colour':attr_vec[:,40:44],
-                        'age':attr_vec[:,44:48]})
+                        'head_colour':attr_vec[:,6].reshape(len(attr_vec), 1),
+                        'body':attr_vec[:,7:10],
+                        'body_type':attr_vec[:,10].reshape(len(attr_vec), 1),
+                        'body_colour':attr_vec[:,11:19],
+                        'bags':attr_vec[:,19:22],
+                        'leg':attr_vec[:,22:25],
+                        'leg_colour':attr_vec[:,25:34],
+                        'foot':attr_vec[:,34:37],                       
+                        'foot_colour':attr_vec[:,37:41],
+                        'age':attr_vec[:,41:45]})
             
         elif dataset == 'Market_attribute':
             output.update({'age':attr_vec[:,0:4],
@@ -101,12 +101,13 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
             
     if dataset == 'CA_Market':
         output.update({'names' : ['gender','cap','hairless','short hair','long hair',
-                                  'knot', 'h_colorful', 'h_black','Tshirt_shs', 'shirt_ls','coat',
-                                  'top','simple/patterned','b_w','b_r','b_y','b_green','b_b',
-                                  'b_gray','b_p','b_black','backpack', 'shoulder bag','hand bag','no bag','pants',
+                                  'knot', 'h_colorful/h_black','Tshirt/shirt', 'coat',
+                                  'top','simple/patterned','b_w','b_r',
+                                  'b_y','b_green','b_b',
+                                  'b_gray','b_p','b_black','backpack', 'bag','no bag','pants',
                                   'short','skirt','l_w','l_r','l_br','l_y','l_green','l_b',
                                   'l_gray','l_p','l_black','shoes','sandal',
-                                  'hidden','no color','f_w', 'f_colorful','f_black', 'young', 
+                                  'hidden','no color','f_w', 'f_colorful','f_black','young', 
                                   'teenager', 'adult', 'old']})
 
     elif dataset == 'Market_attribute':
