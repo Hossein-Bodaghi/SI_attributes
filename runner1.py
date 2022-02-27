@@ -8,7 +8,7 @@ Created on Tue Jan 11 20:07:29 2022
 #%%
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot, common_attr
-from trainings import dict_training_multi_branch, dict_evaluating_multi_branch, take_out_multi_branch, dict_training_dynamic_loss
+from trainings import dict_training_multi_branch, dict_distance_evaluating, take_out_multi_branch, dict_training_dynamic_loss
 from models import attributes_model, Loss_weighting, mb_CA_auto_build_model, mb_CA_auto_same_depth_build_model
 from evaluation import metrics_print, total_metrics
 from delivery import data_delivery
@@ -30,8 +30,9 @@ torch.cuda.empty_cache()
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
-    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
+    parser.add_argument('--eval_mode', type = str, help = '[re-id, attr]', default='attr')
+    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
@@ -52,8 +53,8 @@ def parse_args():
 #%%
 
 args = parse_args()
-
-version = args.dataset+'_'+args.branch_place+'_'+args.training_strategy[:3]+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
+b_name = args.branch_place+'_' if args.training_strategy == 'categorized' else ''
+version = args.dataset+'_'+b_name+args.training_strategy[:3]+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
 print('*** The Version is: ', version, '\n')
 '''v = 0
 while os.path.isdir('results/'+version):'''
@@ -71,10 +72,13 @@ if args.dataset == 'CA_Market':
     main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
     path_attr = './attributes/CA_Market_with_id.npy'
     path_query = './datasets/Market1501/Market-1501-v15.09.15/query/'
+    path_attr_test = '.datasets/Market1501/Market-1501-v15.09.15/bounding_box_test'
 
 elif args.dataset == 'Market_attribute':
     main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
     path_attr = './attributes/Market_attribute_with_id.npy'
+    path_query = './datasets/Market1501/Market-1501-v15.09.15/query/'
+    path_attr_test = '.datasets/Market1501/Market-1501-v15.09.15/bounding_box_test'
 
 elif args.dataset == 'PA100k':
     main_path = './datasets/PA-100K/release_data/release_data/'
@@ -388,7 +392,7 @@ if args.mode == 'train':
         dict_training_multi_branch(num_epoch = args.epoch,
                               attr_net = attr_net,
                               train_loader = train_loader,
-                              test_loader = test_loader,
+                              test_loader = valid_loader,
                               optimizer = optimizer,
                               scheduler = scheduler,
                               save_path = save_path,  
@@ -423,39 +427,86 @@ if args.mode == 'eval':
         attr_metrics.append(IOU(predicts, targets))
                 
     else:
-
-        query = data_delivery(path_query,
-                    path_attr=path_attr,
-                    need_parts=part_based,
-                    need_id=True,
-                    need_attr=not part_based,
-                    dataset = args.dataset)
-
-        query_idx = np.arange(len(query['img_names']))
-        
-        query_data = CA_Loader(img_path=path_query,
-                            attr=query,
-                            resolution=(256, 128),
-                            indexes=query_idx,
-                            dataset = args.dataset,
-                            need_attr = not part_based,
-                            need_collection = part_based,
-                            need_id = True,
-                            two_transforms = False)  
-
-        query_loader = DataLoader(query_data,batch_size=100,shuffle=False)
-
-        attr_metrics, dist_matrix = dict_evaluating_multi_branch(attr_net = attr_net,
-                                                    test_loader = test_loader,
-                                                    query_loader=query_loader,
-                                                    save_path = save_path,
-                                                    device = device,
-                                                    part_loss = part_loss,
-                                                    categorical = part_based)
-
         from evaluation import cmc_map_fromdist
-        concat_ranks = cmc_map_fromdist(query_data, test_data, dist_matrix, feature_mode='concat', max_rank=10)
+        
+        if args.eval_mode == 're-id':
+            query = data_delivery(path_query,
+                        path_attr=path_attr,
+                        need_parts=part_based,
+                        need_id=True,
+                        need_attr=not part_based,
+                        dataset = args.dataset)
 
+            query_idx = np.arange(len(query['img_names']))
+        
+            query_data = CA_Loader(img_path=path_query,
+                                attr=query,
+                                resolution=(256, 128),
+                                indexes=query_idx,
+                                dataset = args.dataset,
+                                need_attr = not part_based,
+                                need_collection = part_based,
+                                need_id = True,
+                                two_transforms = False)  
+
+            query_loader = DataLoader(query_data,batch_size=100,shuffle=False)
+        
+            if args.dataset in ['CA_Market', 'Market_attribute']:
+                
+                gallery = data_delivery(path_attr_test,
+                            path_attr=path_attr,
+                            need_parts=part_based,
+                            need_id=True,
+                            need_attr=not part_based,
+                            dataset = args.dataset)
+                
+                gallery_idx = np.arange(len(gallery['img_names']))
+                
+                gallery_data = CA_Loader(img_path=path_attr_test,
+                                    attr=gallery,
+                                    resolution=(256, 128),
+                                    indexes=gallery_idx,
+                                    dataset = args.dataset,
+                                    need_attr = not part_based,
+                                    need_collection = part_based,
+                                    need_id = True,
+                                    two_transforms = False) 
+                
+                gallery_loader = DataLoader(gallery_data,batch_size=100,shuffle=False)
+                
+                predicts, targets, dist_matrix = dict_distance_evaluating(attr_net = attr_net,
+                                                            test_loader = gallery_loader,
+                                                            query_loader = query_loader,
+                                                            device = device,
+                                                            part_loss = part_loss,
+                                                            categorical = part_based)
+                concat_ranks = cmc_map_fromdist(query_data, gallery_data, dist_matrix, feature_mode='concat', max_rank=10)
+                
+                attr_metrics = []
+                attr_metrics.append(tensor_metrics(targets, predicts))
+                attr_metrics.append(IOU(predicts, targets))
+            else:
+                predicts, targets, dist_matrix = dict_distance_evaluating(attr_net = attr_net,
+                                                            test_loader = test_loader,
+                                                            query_loader=query_loader,
+                                                            device = device,
+                                                            part_loss = part_loss,
+                                                            categorical = part_based)
+
+        
+                concat_ranks = cmc_map_fromdist(query_data, test_data, dist_matrix, feature_mode='concat', max_rank=10)
+                attr_metrics = []
+                attr_metrics.append(tensor_metrics(targets, predicts))
+                attr_metrics.append(IOU(predicts, targets))
+        else:
+            predicts, targets = take_out_multi_branch(attr_net = attr_net,
+                                           test_loader = test_loader,
+                                           device = device,
+                                           part_loss = part_loss,
+                                           categorical = part_based)             
+            attr_metrics = []
+            attr_metrics.append(tensor_metrics(targets, predicts))
+            attr_metrics.append(IOU(predicts, targets))
     if M_or_M_attr_or_PA: 
         if cross_domain:
             pass
@@ -493,49 +544,3 @@ if args.mode == 'eval':
     peices[-1] = 'mean_metrics.xlsx'
     path_mean_metrcis = '/'.join(peices)
     mean_metrics_pd.to_excel(path_mean_metrcis)
-#%%
-
-# if args.mode == 'eval':
-#     import pandas as pd
-    
-#     attr_metrics = dict_evaluating_multi_branch(attr_net = attr_net,
-#                                    test_loader = test_loader,
-#                                    save_path = save_path,
-#                                    device = device,
-#                                    part_loss = part_loss,
-#                                    categorical = part_based,
-#                                    loss_train=None,
-#                                    loss_test=None,
-#                                    train_attr_F1=None,
-#                                    test_attr_F1=None,
-#                                    train_attr_acc=None,
-#                                    test_attr_acc=None,
-#                                    stoped_epoch=None)
-
-#     for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
-#         if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':
-#             metrics_print(attr_metrics[0], attr['names'], metricss=metric)
-#         else:
-#             metrics_print(attr_metrics[0], attr_test['names'], metricss='precision')
-
-#     total_metrics(attr_metrics[0])
-#     iou_result = attr_metrics[1]
-#     print('\n','the mean of iou is: ',str(iou_result.mean().item()))
-#     if args.dataset == 'CA_Market' or args.dataset == 'Market_attribute' or args.dataset == 'PA100k':            
-#         iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
-#     else:    
-#         iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=test_img_path, attr=attr, num_worst = args.num_worst)
- 
-#     metrics_result = attr_metrics[0][:5]
-#     attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T,
-#                                    index=attr['names'], columns=['precision','recall','accuracy','f1','MA'])
-#     attr_metrics_pd.to_excel(args.save_attr_metrcis)
-    
-#     mean_metrics = attr_metrics[0][5:]
-#     mean_metrics.append(iou_result.mean().item())
-#     mean_metrics_pd = pd.DataFrame(data = np.array(mean_metrics), index=['precision','recall','accuracy','f1','MA', 'IOU'])
-#     peices = args.save_attr_metrcis.split('/')
-#     peices[-1] = 'mean_metrics.xlsx'
-#     path_mean_metrcis = '/'.join(peices)
-#     mean_metrics_pd.to_excel(path_mean_metrcis)
-

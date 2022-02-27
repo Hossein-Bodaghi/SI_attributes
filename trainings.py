@@ -547,7 +547,7 @@ def dict_training_dynamic_loss(num_epoch,
             else:
                 print('test f1 improved','\n')                
 #%%
-def dict_evaluating_multi_branch(attr_net, test_loader, query_loader, save_path, device, part_loss, categorical):
+def dict_distance_evaluating(attr_net, test_loader, query_loader, device, part_loss, categorical):
 
     attr_net = attr_net.to(device)
     # evaluation:     
@@ -592,11 +592,10 @@ def dict_evaluating_multi_branch(attr_net, test_loader, query_loader, save_path,
 
     predicts = torch.cat(predicts)
     targets = torch.cat(targets)   
-    iou_result = IOU(predicts, targets)
-    test_attr_metrics = tensor_metrics(y_target.float(), y_attr)           
-    return [test_attr_metrics, iou_result], dist_matrix
+        
+    return [predicts, targets], dist_matrix
 #%%
-def take_out_multi_branch(attr_net,test_loader,save_path,device,part_loss,categorical):
+def take_out_multi_branch(attr_net, test_loader, device, part_loss, categorical):
 
     attr_net = attr_net.to(device)
     # evaluation:     

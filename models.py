@@ -550,7 +550,7 @@ class attributes_model(nn.Module):
         
     def forward(self, x, get_features = False):
         
-        features = self.out_layers_extractor(x, 'out_fc') 
+        features = self.out_layers_extractor(x, 'fc') 
         if get_features:
             return features
         else:
