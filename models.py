@@ -734,7 +734,8 @@ class mb_CA_auto_build_model(nn.Module):
         print('baseline model save to {}'.format(saving_path))
 
 
-
+branch_channels = [16, 64, 96, 128]
+base_channels = [64,64,256,384,512]
 class mb_CA_auto_same_depth_build_model(nn.Module):
     
     def __init__(self,
@@ -762,7 +763,7 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
         branches = {k:[] for k,v in self.branch_fcs.items()}
         for k in self.branch_fcs.keys():
             # convs
-            if branch_place != 'conv5':
+            if branch_place not in ['conv5', 'conv4']:
                 
                 idx = self.layer_list.index(branch_place)-2
 
@@ -779,14 +780,13 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
             # classifiers
             if branch_place == 'conv4' or branch_place == 'conv5':
                 idx = self.layer_list.index('conv4')-2
-                channels[idx+1] = 512
             if branch_place != 'conv5':
-                branches[k].append(Conv1x1(channels[idx+1], channels[idx+1]))
+                branches[k].append(Conv1x1(base_channels[idx+1], base_channels[idx+1]))
                 branches[k].append(nn.AdaptiveAvgPool2d(1))
             else:
                 branches[k].append(nn.AdaptiveAvgPool2d(1))
-            branches[k].append(self._construct_fc_layer(channels[idx+1], channels[idx+1], dropout_p=None))
-            branches[k].append(nn.Linear(channels[idx+1], branch_names[k]))
+            branches[k].append(self._construct_fc_layer(branch_channels[idx+1], base_channels[idx+1], dropout_p=None))
+            branches[k].append(nn.Linear(branch_channels[idx+1], branch_names[k]))
             setattr(self, 'branch_'+k, nn.Sequential(*branches[k]))
             '''# convs
             for layer in self.layer_list[self.layer_list.index(branch_place)+1:]:

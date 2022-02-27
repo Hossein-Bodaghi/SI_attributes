@@ -38,12 +38,12 @@ def parse_args():
     parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 1)
     parser.add_argument('--num_worst',type = int,help = 'to plot how many of the worst images in eval mode',default = 10)
     parser.add_argument('--epoch',type = float,help = 'number epochs',default = 30)
-    parser.add_argument('--lr',type = float,help = 'learning rate',default = 3.5e-4)
+    parser.add_argument('--lr',type = float,help = 'learning rate',default = 3.5e-5)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
     parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_market.pth')
-    parser.add_argument('--branch_place',type = str,help = 'could be: conv1,maxpool,conv2,conv3,conv4,conv5',default='conv5')
+    parser.add_argument('--branch_place',type = str,help = 'could be: conv1,maxpool,conv2,conv3,conv4,conv5',default='conv4')
     parser.add_argument('--cross_domain',type = str,help = 'y/n',default='n')
     args = parser.parse_args()
     return args
@@ -54,6 +54,7 @@ def parse_args():
 args = parse_args()
 
 version = args.dataset+'_'+args.branch_place+'_'+args.training_strategy[:3]+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
+print('*** The Version is: ', version, '\n')
 '''v = 0
 while os.path.isdir('results/'+version):'''
 
