@@ -765,28 +765,33 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
             # convs
             if branch_place not in ['conv5', 'conv4']:
                 
-                idx = self.layer_list.index(branch_place)-2
+                idx = self.layer_list.index(branch_place)-1
 
                 for i, layer in enumerate(self.layer_list[self.layer_list.index(branch_place)+1:]):
-                    idx += 1
+                    
                     branches[k].append(_make_layer(
                                                     blocks[idx],
                                                     layers[idx],
-                                                    self.layer_init_dim[idx+1] if i==0 else channels[idx],
-                                                    channels[idx+1],
+                                                    self.layer_init_dim[idx+1] if i==0 else branch_channels[idx],
+                                                    branch_channels[idx+1],
                                                     reduce_spatial_size=False if layer=='conv4' else True
                                                 ))
+                    idx += 1
                 
             # classifiers
-            if branch_place == 'conv4' or branch_place == 'conv5':
-                idx = self.layer_list.index('conv4')-2
+            # if branch_place == 'conv4' or branch_place == 'conv5':
+            idx = self.layer_list.index('conv4')-1
             if branch_place != 'conv5':
-                branches[k].append(Conv1x1(base_channels[idx+1], base_channels[idx+1]))
+                branches[k].append(Conv1x1(base_channels[idx+1] if branch_place=='conv4' else branch_channels[idx] ,
+                                           branch_channels[idx]))
                 branches[k].append(nn.AdaptiveAvgPool2d(1))
+                branches[k].append(self._construct_fc_layer(branch_channels[idx],
+                                                            branch_channels[idx], dropout_p=None))
             else:
                 branches[k].append(nn.AdaptiveAvgPool2d(1))
-            branches[k].append(self._construct_fc_layer(branch_channels[idx+1], base_channels[idx+1], dropout_p=None))
-            branches[k].append(nn.Linear(branch_channels[idx+1], branch_names[k]))
+                branches[k].append(self._construct_fc_layer(branch_channels[idx],
+                                                            base_channels[idx+1], dropout_p=None))
+            branches[k].append(nn.Linear(branch_channels[idx], branch_names[k]))
             setattr(self, 'branch_'+k, nn.Sequential(*branches[k]))
             '''# convs
             for layer in self.layer_list[self.layer_list.index(branch_place)+1:]:
