@@ -11,9 +11,9 @@ from utils import get_n_params, part_data_delivery, resampler, attr_weight, vali
 from trainings import dict_training_multi_branch, dict_distance_evaluating, take_out_multi_branch, dict_training_dynamic_loss
 from models import attributes_model, Loss_weighting, mb_CA_auto_build_model, mb_CA_auto_same_depth_build_model
 from evaluation import metrics_print, total_metrics
-from delivery import data_delivery
+from delivery import data_delivery, reid_delivery
 from metrics import tensor_metrics, IOU
-from loaders import CA_Loader
+from loaders import CA_Loader, Simple_Loader
 # torch requirements
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -430,47 +430,19 @@ if args.mode == 'eval':
         from evaluation import cmc_map_fromdist
         
         if args.eval_mode == 're-id':
-            query = data_delivery(path_query,
-                        path_attr=path_attr,
-                        need_parts=part_based,
-                        need_id=True,
-                        need_attr=not part_based,
-                        dataset = args.dataset)
-
-            query_idx = np.arange(len(query['img_names']))
-        
-            query_data = CA_Loader(img_path=path_query,
+            query = reid_delivery(path_query)        
+            query_data = Simple_Loader(img_path=path_query,
                                 attr=query,
-                                resolution=(256, 128),
-                                indexes=query_idx,
-                                dataset = args.dataset,
-                                need_attr = not part_based,
-                                need_collection = part_based,
-                                need_id = True,
-                                two_transforms = False)  
+                                resolution=(256, 128))  
 
             query_loader = DataLoader(query_data,batch_size=100,shuffle=False)
         
             if args.dataset in ['CA_Market', 'Market_attribute']:
                 
-                gallery = data_delivery(path_attr_test,
-                            path_attr=path_attr,
-                            need_parts=part_based,
-                            need_id=True,
-                            need_attr=not part_based,
-                            dataset = args.dataset)
-                
-                gallery_idx = np.arange(len(gallery['img_names']))
-                
-                gallery_data = CA_Loader(img_path=path_attr_test,
-                                    attr=gallery,
-                                    resolution=(256, 128),
-                                    indexes=gallery_idx,
-                                    dataset = args.dataset,
-                                    need_attr = not part_based,
-                                    need_collection = part_based,
-                                    need_id = True,
-                                    two_transforms = False) 
+                gallery = reid_delivery(path_attr_test)                
+                gallery_data = Simple_Loader(img_path=path_attr_test,
+                                             attr=gallery,
+                                             resolution=(256, 128)) 
                 
                 gallery_loader = DataLoader(gallery_data,batch_size=100,shuffle=False)
                 

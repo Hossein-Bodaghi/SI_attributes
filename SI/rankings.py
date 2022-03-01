@@ -17,7 +17,7 @@ with torch.no_grad():
     predicts = []
     test_features = []
     query_features = []
-    for idx, data in enumerate(test_loader):
+    for idx, data in enumerate(gallery_loader):
         
         for key, _ in data.items():
             data[key] = data[key].to(device)
@@ -59,8 +59,8 @@ q_camids = np.asarray(query['cam_id'])
 q_camids -= 1
 # gallery
 
-g_pids = np.asarray(attr['id'][test_idx])
-g_camids = np.asarray(attr['cam_id'][test_idx])
+g_pids = np.asarray(gallery['id'])
+g_camids = np.asarray(gallery['cam_id'])
 g_camids -= 1
 # query_ids = query['id']
 # gallery_ids = gallery['id']

@@ -265,3 +265,28 @@ class CA_Loader(Dataset):
             
         return out
 
+class Simple_Loader(Dataset):
+    '''
+
+    '''
+    def __init__(self,img_path,
+                 attr,
+                 resolution):
+        
+        self.img_path = img_path
+        self.img_names = attr['img_names']
+        self.resolution = resolution
+        self.id = attr['id']
+        self.cam_id = attr['cam_id']
+        self.normalizer = transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    def __len__(self):
+        return len(self.img_names)
+    
+    def __getitem__(self,idx):
+        img = get_image(os.path.join(self.img_path, self.img_names[idx]), self.resolution[0], self.resolution[1])
+        
+        img = self.normalizer(img)
+        
+        return {'img':img, 'id':self.id[idx], 'cam_id':self.cam_id[idx]}
