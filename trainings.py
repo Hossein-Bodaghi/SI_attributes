@@ -563,7 +563,7 @@ def dict_distance_evaluating(attr_net, test_loader, query_loader, device, part_l
                 data[key] = data[key].to(device)
                 
             # forward step
-            out_features, out_data = attr_net.get_feature(data['img'], method='baseline')
+            out_data, out_features = attr_net.get_feature(data['img'], method='baseline')
 
             y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
             predicts.append(y_attr.to('cpu'))
@@ -577,7 +577,7 @@ def dict_distance_evaluating(attr_net, test_loader, query_loader, device, part_l
                 data_query[key] = data_query[key].to(device)
                 
             # forward step
-            out_features_q, out_data_q = attr_net.get_feature(data_query['img'], method='baseline')
+            out_data_q, out_features_q = attr_net.get_feature(data_query['img'], method='baseline')
 
             y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
             predicts.append(y_attr.to('cpu'))
@@ -593,7 +593,7 @@ def dict_distance_evaluating(attr_net, test_loader, query_loader, device, part_l
     predicts = torch.cat(predicts)
     targets = torch.cat(targets)   
         
-    return [predicts, targets], dist_matrix
+    return [predicts, targets, dist_matrix]
 #%%
 def take_out_multi_branch(attr_net, test_loader, device, part_loss, categorical):
 

@@ -821,31 +821,17 @@ class mb_CA_auto_same_depth_build_model(nn.Module):
 
     def get_feature(self, x, get_attr=True, get_feature=True, method='both', get_collection=False):
         
-        out_baseline = self.out_layers_extractor(x, self.branch_place) 
-        
-        out_features = {}
+        out_baseline = self.out_layers_extractor(x, self.branch_place)       
+        out_attributes = {}
 
         for k in self.branch_fcs.keys():
-            out_features.setdefault(k, self.attr_branch(out_baseline if self.feat_indices == None else torch.index_select(out_baseline, 1, self.feat_indices[0]),
+            out_attributes.setdefault(k, self.attr_branch(out_baseline if self.feat_indices == None else torch.index_select(out_baseline, 1, self.feat_indices[0]),
                                                             getattr(self,'branch_'+k),
-                                                            need_feature = True)
+                                                            need_feature = False)
             )
+        out_baseline = self.out_layers_extractor(x, 'fc')
 
-        del out_baseline
-        out_fc_branches = [item[0] for item in list(out_features.values())]
-        outputs_clfs = {}
-        for k, v in out_features.items():
-            outputs_clfs.update({k: v[1]})
-
-        x = self.out_layers_extractor(x, 'out_fc')
-        out_fc_branches = torch.cat(out_fc_branches, dim=1)
-        if method == 'both':
-            outputs_fcs = torch.cat((out_fc_branches,x), dim=1)
-        elif method == 'baseline':
-            outputs_fcs = x
-        elif method == 'branches':
-            outputs_fcs = out_fc_branches
-        return outputs_fcs, outputs_clfs
+        return out_attributes, out_baseline
         
     
     def vector_features(self, x):

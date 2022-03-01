@@ -156,5 +156,16 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
             
     return output
 
-
-    
+def reid_delivery(main_path):
+    names = os.listdir(main_path)
+    names.sort()
+    id_ = []
+    cam_id = []
+    img_names = []
+    for name in names:
+        b = name.split('_')
+        if int(b[0]) != -1:
+            id_.append(int(b[0]))
+            cam_id.append(int(b[1][1]))
+            img_names.append(name)
+    return {'img_names':np.array(img_names),'id':np.array(id_), 'cam_id':np.array(cam_id)}

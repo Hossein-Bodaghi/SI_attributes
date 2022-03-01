@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
     parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
     parser.add_argument('--eval_mode', type = str, help = '[re-id, attr]', default='attr')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')       
+    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]',default='all')
@@ -72,13 +72,13 @@ if args.dataset == 'CA_Market':
     main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
     path_attr = './attributes/CA_Market_with_id.npy'
     path_query = './datasets/Market1501/Market-1501-v15.09.15/query/'
-    path_attr_test = '.datasets/Market1501/Market-1501-v15.09.15/bounding_box_test'
+    path_attr_test = './datasets/Market1501/Market-1501-v15.09.15/bounding_box_test'
 
 elif args.dataset == 'Market_attribute':
     main_path = './datasets/Market1501/Market-1501-v15.09.15/gt_bbox/'
     path_attr = './attributes/Market_attribute_with_id.npy'
     path_query = './datasets/Market1501/Market-1501-v15.09.15/query/'
-    path_attr_test = '.datasets/Market1501/Market-1501-v15.09.15/bounding_box_test'
+    path_attr_test = './datasets/Market1501/Market-1501-v15.09.15/bounding_box_test'
 
 elif args.dataset == 'PA100k':
     main_path = './datasets/PA-100K/release_data/release_data/'
