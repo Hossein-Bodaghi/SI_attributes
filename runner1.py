@@ -457,6 +457,10 @@ if args.mode == 'eval':
                                            query_loader = query_loader,
                                            gallery = attr_test, query = query,
                                            device = device, ratio = 0.09, activation=False)
+            print('** Re-Id Results **','\n','mAP: {:.2f}%'.format(100*mAP),
+                  '\n', 'CMC curve','\n','Rank-1: {:.2f}%'.format(100*cmc[0]),'\n',
+                  'Rank-5: {:.2f}%'.format(100*cmc[4]),'\n','Rank-10: {:.2f}%'.format(100*cmc[9]),
+                  '\n','Rank-20: {:.2f}%'.format(100*cmc[19]))
         
         else:
             predicts, targets = take_out_multi_branch(attr_net = attr_net,
