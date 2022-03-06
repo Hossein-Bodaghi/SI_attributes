@@ -85,7 +85,38 @@ def common_attr(predicts, targets):
         new_targets[:,4:7] = targets[:,22:25]          
     return new_predicts, new_targets, attr_names
 
+def metrics_print(attr_metrics, attr_colomns, metricss='precision'):
+    n = 0
+    if metricss == 'precision': n = 0
+    elif metricss=='recall': n = 1
+    elif metricss=='accuracy': n = 2
+    elif metricss=='f1': n = 3 
+    elif metricss=='mean_accuracy': n = 4  
+    
+    print('\n'+'the result of',metricss+'')
+    non_zeros = []
+    for idx, m in enumerate(attr_colomns):
+        if attr_metrics[n][idx].item() == 0:
+            pass
+        else:
+            non_zeros.append(attr_metrics[n][idx].item())
+        print(idx, ')', m, '-->', attr_metrics[n][idx].item()) 
 
+    mean = sum(non_zeros)/len(non_zeros)
+    print(idx+1, ')', 'mean_nonzero', '-->', mean) 
+    print(idx+1, ')', 'mean_withzero', '-->', torch.mean(attr_metrics[n]).item())
+
+
+def total_metrics(attr_metrics): 
+    metrices = ['precision_total',
+            'recall_total',
+            'accuracy_total',
+            'f1_total', 
+            'mean_accuracy_total']
+    print('\n')
+    for i in range(5):
+        print(i, ')', metrices[i], '-->', attr_metrics[i+5]) 
+        
 def persian_csv_format(path_table, path_save, read='excel', sep_col=1):
     
     if read == 'excel':
