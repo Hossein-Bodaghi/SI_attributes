@@ -8,7 +8,7 @@ Created on Tue Jan 11 20:07:29 2022
 #%%
 # repository imports
 from utils import get_n_params, part_data_delivery, resampler, attr_weight, validation_idx, LGT, iou_worst_plot, common_attr
-from trainings import dict_training_multi_branch, dict_distance_evaluating, take_out_multi_branch, dict_training_dynamic_loss
+from trainings import dict_training_multi_branch, dict_distance_evaluating, take_out_multi_branch, dict_training_dynamic_loss, attr_predictor, attr_concatenator
 from models import attributes_model, Loss_weighting, mb_CA_auto_build_model, mb_CA_auto_same_depth_build_model
 from evaluation import metrics_print, total_metrics
 from delivery import data_delivery, reid_delivery

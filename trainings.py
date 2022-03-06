@@ -93,12 +93,12 @@ def CA_part_loss_calculator(out_data, data, part_loss, categorical = True, dynam
     attr_loss = torch.tensor(attr_loss)
     return attr_loss, loss_total
 
-def CA_target_attributes_12(out_data, data, part_loss, need_tensor_max = False, categorical = True):
+def CA_target_attributes_12(out_data, data, need_tensor_max = False, categorical = True):
     'calculte y_attr and y_target for categorical and vectorize formats'
     if categorical:
         m = 0
         bces = ['body_type', 'gender', 'head_colour', 'body_colour', 'attributes', 'position', 'accessories'] 
-        for key in part_loss:
+        for key in out_data:
             if key in bces:
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
                 if m == 0:
@@ -122,7 +122,7 @@ def CA_target_attributes_12(out_data, data, part_loss, need_tensor_max = False, 
             m += 1
     else:
         m = 0
-        for key in part_loss:
+        for key in out_data:
             if key == 'body_type' or key == 'gender' or key == 'body_colour' or key == 'attributes':
                 y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
             else :
@@ -139,7 +139,62 @@ def CA_target_attributes_12(out_data, data, part_loss, need_tensor_max = False, 
                 y_attr = torch.cat(y_attr, y, dim=1)
             m += 1
     return y_attr, y_target
+
+def attr_predictor(out_data, need_tensor_max = False, categorical = True):
+    'calculte y_attr and y_target for categorical and vectorize formats'
+    if categorical:
+        m = 0
+        bces = ['body_type', 'gender', 'head_colour', 'body_colour', 'attributes', 'position', 'accessories'] 
+        for key in out_data:
+            if key in bces:
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+            else :
+                out_data[key] = softmax(out_data[key])
+                if need_tensor_max:
+                    y = tensor_max(out_data[key])
+                else:
+                    y = tensor_thresh(out_data[key])
+            if m == 0:
+                y_attr = y
+            else:
+                y_attr = torch.cat((y_attr, y), dim=1)
+            m += 1
+    else:
+        m = 0
+        for key in out_data:
+            if key == 'body_type' or key == 'gender' or key == 'body_colour' or key == 'attributes':
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+            else :
+                out_data[key] = torch.sigmoid(out_data[key])
+                if need_tensor_max:
+                    y = tensor_max(out_data[key])
+                else:
+                    y = tensor_thresh(out_data[key])
+            if m == 0:
+                y_attr = y
+            else:
+                y_attr = torch.cat(y_attr, y, dim=1)
+            m += 1
+    return y_attr
+
+def attr_concatenator(out_data, activation = False):
+    'calculte y_attr and y_target for categorical and vectorize formats'
+    m = 0
+    for key in out_data:
+        if m == 0:
+            if activation:
+                y_attr = torch.sigmoid(out_data[key])
+            else:
+                y_attr = out_data[key]
+        else:
+            if activation: 
+                y_attr = torch.cat((y_attr, torch.sigmoid(out_data[key])), dim=1)
+            else:
+                y_attr = torch.cat((y_attr, out_data[key]), dim=1)
+        m += 1
+    return y_attr
 softmax = torch.nn.Softmax(dim=1)
+
 #%%
 def dict_training_multi_branch(num_epoch,
                                attr_net,
@@ -220,7 +275,7 @@ def dict_training_multi_branch(num_epoch,
 
                 loss_parts_train += attr_loss
 
-                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+                y_attr, y_target = CA_target_attributes_12(out_data, data, need_tensor_max=categorical, categorical=categorical)
                 # evaluation    
                 train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 # append results
@@ -276,7 +331,7 @@ def dict_training_multi_branch(num_epoch,
                                                                 categorical=categorical)
                 loss_parts_test += attr_loss
                 
-                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+                y_attr, y_target = CA_target_attributes_12(out_data, data, need_tensor_max=categorical, categorical=categorical)
 
                 test_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 ft_test.append(test_attr_metrics[-2])
@@ -428,7 +483,7 @@ def dict_training_dynamic_loss(num_epoch,
 
                 loss_parts_train += attr_loss
 
-                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+                y_attr, y_target = CA_target_attributes_12(out_data, data, need_tensor_max=categorical, categorical=categorical)
                 # evaluation    
                 train_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 # append results
@@ -485,7 +540,7 @@ def dict_training_dynamic_loss(num_epoch,
                 
                 loss_parts_test += attr_loss
                 
-                y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+                y_attr, y_target = CA_target_attributes_12(out_data, data, need_tensor_max=categorical, categorical=categorical)
 
                 test_attr_metrics = tensor_metrics(y_target.float(), y_attr)
                 ft_test.append(test_attr_metrics[-2])
@@ -565,7 +620,7 @@ def dict_distance_evaluating(attr_net, test_loader, query_loader, device, part_l
             # forward step
             out_data, out_features = attr_net.get_feature(data['img'], method='baseline')
 
-            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+            y_attr, y_target = CA_target_attributes_12(out_data, data, need_tensor_max=categorical, categorical=categorical)
             predicts.append(y_attr.to('cpu'))
             targets.append(y_target.to('cpu'))
 
@@ -579,7 +634,7 @@ def dict_distance_evaluating(attr_net, test_loader, query_loader, device, part_l
             # forward step
             out_data_q, out_features_q = attr_net.get_feature(data_query['img'], method='baseline')
 
-            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+            y_attr, y_target = CA_target_attributes_12(out_data, data, need_tensor_max=categorical, categorical=categorical)
             predicts.append(y_attr.to('cpu'))
             targets.append(y_target.to('cpu'))
 
@@ -610,7 +665,7 @@ def take_out_multi_branch(attr_net, test_loader, device, part_loss, categorical)
                 
             # forward step
             out_data = attr_net.forward(data['img'])           
-            y_attr, y_target = CA_target_attributes_12(out_data, data, part_loss, need_tensor_max=categorical, categorical=categorical)
+            y_attr, y_target = CA_target_attributes_12(out_data, data, need_tensor_max=categorical, categorical=categorical)
             predicts.append(y_attr.to('cpu'))
             targets.append(y_target.to('cpu'))
     predicts = torch.cat(predicts)
