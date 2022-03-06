@@ -8,9 +8,10 @@ Created on Mon Feb 28 15:56:42 2022
 
 import torchreid
 import numpy as np
+import torch
+from trainings import attr_concatenator
 
-
-def feature_extractor(attr_net, gallery_loader, query_loader, activation=False):
+def feature_extractor(attr_net, gallery_loader, query_loader, device, activation=False):
     attr_net.eval()
     with torch.no_grad():
         predicts_q = []
@@ -174,7 +175,7 @@ def rank_calculator(attr_net, gallery_loader, query_loader,
                     gallery, query, device, ratio = 0.09, activation=False):
     
     print('feature extraction')
-    query_predicts, test_predics, query_features, test_features = feature_extractor(attr_net = attr_net,
+    (query_predicts, test_predics), (query_features, test_features) = feature_extractor(attr_net = attr_net,
                                                 gallery_loader = gallery_loader,
                                                 query_loader = query_loader,
                                                 device = device)    

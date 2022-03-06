@@ -649,6 +649,7 @@ def dict_distance_evaluating(attr_net, test_loader, query_loader, device, part_l
     targets = torch.cat(targets)   
         
     return [predicts, targets, dist_matrix]
+
 #%%
 def take_out_multi_branch(attr_net, test_loader, device, part_loss, categorical):
 

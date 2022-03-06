@@ -14,6 +14,7 @@ from evaluation import metrics_print, total_metrics
 from delivery import data_delivery, reid_delivery
 from metrics import tensor_metrics, IOU
 from loaders import CA_Loader, Simple_Loader
+from rankings import rank_calculator
 # torch requirements
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -31,7 +32,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
     parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
-    parser.add_argument('--eval_mode', type = str, help = '[re-id, attr]', default='attr')
+    parser.add_argument('--eval_mode', type = str, help = '[re_id, attr]', default='re_id')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
@@ -427,9 +428,8 @@ if args.mode == 'eval':
         attr_metrics.append(IOU(predicts, targets))
                 
     else:
-        from evaluation import cmc_map_fromdist
         
-        if args.eval_mode == 're-id':
+        if args.eval_mode == 're_id':
             query = reid_delivery(path_query)        
             query_data = Simple_Loader(img_path=path_query,
                                 attr=query,
@@ -446,30 +446,18 @@ if args.mode == 'eval':
                 
                 gallery_loader = DataLoader(gallery_data,batch_size=100,shuffle=False)
                 
-                predicts, targets, dist_matrix = dict_distance_evaluating(attr_net = attr_net,
-                                                            test_loader = gallery_loader,
-                                                            query_loader = query_loader,
-                                                            device = device,
-                                                            part_loss = part_loss,
-                                                            categorical = part_based)
-                concat_ranks = cmc_map_fromdist(query_data, gallery_data, dist_matrix, feature_mode='concat', max_rank=10)
-                
-                attr_metrics = []
-                attr_metrics.append(tensor_metrics(targets, predicts))
-                attr_metrics.append(IOU(predicts, targets))
+                cmc, mAP = rank_calculator(attr_net = attr_net,
+                                           gallery_loader = gallery_loader,
+                                           query_loader = query_loader,
+                                           gallery = gallery, query = query,
+                                           device = device, ratio = 0.09, activation=False)                
             else:
-                predicts, targets, dist_matrix = dict_distance_evaluating(attr_net = attr_net,
-                                                            test_loader = test_loader,
-                                                            query_loader=query_loader,
-                                                            device = device,
-                                                            part_loss = part_loss,
-                                                            categorical = part_based)
-
+                cmc, mAP = rank_calculator(attr_net = attr_net,
+                                           gallery_loader = test_loader,
+                                           query_loader = query_loader,
+                                           gallery = attr_test, query = query,
+                                           device = device, ratio = 0.09, activation=False)
         
-                concat_ranks = cmc_map_fromdist(query_data, test_data, dist_matrix, feature_mode='concat', max_rank=10)
-                attr_metrics = []
-                attr_metrics.append(tensor_metrics(targets, predicts))
-                attr_metrics.append(IOU(predicts, targets))
         else:
             predicts, targets = take_out_multi_branch(attr_net = attr_net,
                                            test_loader = test_loader,
@@ -479,40 +467,40 @@ if args.mode == 'eval':
             attr_metrics = []
             attr_metrics.append(tensor_metrics(targets, predicts))
             attr_metrics.append(IOU(predicts, targets))
-    if M_or_M_attr_or_PA: 
-        if cross_domain:
-            pass
-        else:
-            attr_names = attr['names']
-        main_path = main_path
-    else:
-        if cross_domain:
-            pass
-        else:
-            attr_names = attr_test['names']
-        main_path = test_img_path
-        attr = attr_test
-    for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
-        metrics_print(attr_metrics[0], attr_names, metricss=metric)
-
-    total_metrics(attr_metrics[0])
-    iou_result = attr_metrics[1]
-    print('\n','the mean of iou is: ',str(iou_result.mean().item()))
-
-    iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
-    
-
-
-    metrics_result = attr_metrics[0][:5]
-
-    attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T,
-                                   index=attr_names, columns=['precision','recall','accuracy','f1','MA'])  
-    attr_metrics_pd.to_excel(save_attr_metrcis)
-    
-    mean_metrics = attr_metrics[0][5:]
-    mean_metrics.append(iou_result.mean().item())
-    mean_metrics_pd = pd.DataFrame(data = np.array(mean_metrics), index=['precision','recall','accuracy','f1','MA', 'IOU'])
-    peices = save_attr_metrcis.split('/')
-    peices[-1] = 'mean_metrics.xlsx'
-    path_mean_metrcis = '/'.join(peices)
-    mean_metrics_pd.to_excel(path_mean_metrcis)
+            if M_or_M_attr_or_PA: 
+                if cross_domain:
+                    pass
+                else:
+                    attr_names = attr['names']
+                main_path = main_path
+            else:
+                if cross_domain:
+                    pass
+                else:
+                    attr_names = attr_test['names']
+                main_path = test_img_path
+                attr = attr_test
+            for metric in ['precision', 'recall', 'accuracy', 'f1', 'mean_accuracy']:
+                metrics_print(attr_metrics[0], attr_names, metricss=metric)
+        
+            total_metrics(attr_metrics[0])
+            iou_result = attr_metrics[1]
+            print('\n','the mean of iou is: ',str(iou_result.mean().item()))
+        
+            iou_worst_plot(iou_result=iou_result, valid_idx=test_idx, main_path=main_path, attr=attr, num_worst = args.num_worst)
+            
+        
+        
+            metrics_result = attr_metrics[0][:5]
+        
+            attr_metrics_pd = pd.DataFrame(data = np.array([result.numpy() for result in metrics_result]).T,
+                                           index=attr_names, columns=['precision','recall','accuracy','f1','MA'])  
+            attr_metrics_pd.to_excel(save_attr_metrcis)
+            
+            mean_metrics = attr_metrics[0][5:]
+            mean_metrics.append(iou_result.mean().item())
+            mean_metrics_pd = pd.DataFrame(data = np.array(mean_metrics), index=['precision','recall','accuracy','f1','MA', 'IOU'])
+            peices = save_attr_metrcis.split('/')
+            peices[-1] = 'mean_metrics.xlsx'
+            path_mean_metrcis = '/'.join(peices)
+            mean_metrics_pd.to_excel(path_mean_metrcis)
