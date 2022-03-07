@@ -151,12 +151,11 @@ class CA_Loader(Dataset):
                 self.gender = attr['gender'][indexes]
                 self.head = attr['head'][indexes]
                 self.head_color = attr['head_color'][indexes]
-                self.cap = attr['cap'][indexes]
+                self.cap = attr['hat'][indexes]
                 self.cap_color = attr['cap_color'][indexes]
                 self.body = attr['body'][indexes]
                 self.body_color = attr['body_color'][indexes]
                 self.bags = attr['bags'][indexes]
-                self.umbrella = attr['umbrella'][indexes]
                 self.face = attr['face'][indexes]
                 self.leg = attr['leg'][indexes]
                 self.leg_color = attr['leg_color'][indexes]
@@ -245,12 +244,11 @@ class CA_Loader(Dataset):
                     'gender':self.gender[idx],
                     'head':self.head[idx],
                     'head_color':self.head_color[idx],
-                    'cap':self.cap[idx],
+                    'hat':self.cap[idx],
                     'cap_color':self.cap_color[idx],
                     'body':self.body[idx],
                     'body_color':self.body_color[idx],
                     'bags':self.bags[idx],
-                    'umbrella':self.umbrella[idx],
                     'face':self.face[idx],
                     'leg':self.leg[idx],
                     'leg_color':self.leg_color[idx],

@@ -34,10 +34,13 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
     Returns
     -------
     '''
+
     output = {}
     attr_vec = load_attributes(path_attr) # numpy array
     if need_attr: output.update({'attributes':attr_vec[:,:-1]})
     
+    if need_id: 
+        output.update({'id':attr_vec[:,-1]})        
     img_names = load_image_names(main_path)
     output.update({'img_names':img_names,
                     'id':np.array([int(i.split('_')[0]) for i in img_names]),
