@@ -203,3 +203,34 @@ def eval_func(distmat, q_pids, g_pids, q_camids, g_camids, max_rank=50):
     mAP = np.mean(all_AP)
 
     return all_cmc, mAP
+
+attr_net.eval()
+with torch.no_grad():
+    predicts_q = []
+    predicts = []
+    test_features = []
+    query_features = []
+    for idx, data in enumerate(gallery_loader):
+        
+        for key, _ in data.items():
+            data[key] = data[key].to(device)
+            
+        # forward step
+        out_features = attr_net(data['img'], get_features = True)
+        # out_data = attr_concatenator(out_data, activation=False)
+
+        test_features.append(out_features.to('cpu'))
+        # predicts.append(out_data.to('cpu'))
+    for idx, data_query in enumerate(query_loader):
+        
+        for key, _ in data.items():
+            data_query[key] = data_query[key].to(device)
+            
+        out_features_q = attr_net(data_query['img'], get_features = True)
+        # out_data_q = attr_concatenator(out_data_q, activation = False)
+        
+        query_features.append(out_features_q.to('cpu'))
+        # predicts_q.append(out_data_q.to('cpu'))
+
+test_features = torch.cat(test_features)
+query_features = torch.cat(query_features)

@@ -30,9 +30,9 @@ torch.cuda.empty_cache()
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
     parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
-    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval, attr_retrieval]', default='eval')
-    parser.add_argument('--eval_mode', type = str, help = '[re_id, attr]', default='re_id')
-    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='categorized')       
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
+    parser.add_argument('--eval_mode', type = str, help = '[re_id, attr, attr_retrieval]', default='attr_retrieval')
+    parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
                                                            +  'Duke_attribute: [bags, boot, gender, hat, foot_colour, body, leg_colour,body_colour]'
@@ -423,7 +423,7 @@ if args.mode == 'eval':
                   'Rank-5: {:.2f}%'.format(100*cmc[4]),'\n','Rank-10: {:.2f}%'.format(100*cmc[9]),
                   '\n','Rank-20: {:.2f}%'.format(100*cmc[19]))
         
-        else:
+        elif args.eval_mode == 'attr':
             predicts, targets = take_out_multi_branch(attr_net = attr_net,
                                            test_loader = test_loader,
                                            device = device,
@@ -469,15 +469,18 @@ if args.mode == 'eval':
             peices[-1] = 'mean_metrics.xlsx'
             path_mean_metrcis = '/'.join(peices)
             mean_metrics_pd.to_excel(path_mean_metrcis)
-#%%
-if args.mode == 'attr_retrieval':
-    
-    predicts, probability, targets = take_out_attr_retrieval(attr_net = attr_net,
-                                   test_loader = test_loader,
-                                   device = device,
-                                   part_loss = part_loss,
-                                   categorical = part_based) 
-    names = attr['names'] if M_or_M_attr_or_PA else attr_test['names']
-    average_precision, mean_average_precision = map_evaluation(names, probability, targets)
-
+        elif args.eval_mode == 'attr_retrieval':
+            predicts, probability, targets = take_out_attr_retrieval(attr_net = attr_net,
+                                           test_loader = test_loader,
+                                           device = device,
+                                           part_loss = part_loss,
+                                           categorical = part_based) 
+            names = attr['names'] if M_or_M_attr_or_PA else attr_test['names']
+            average_precision, mean_average_precision = map_evaluation(names, probability, targets)            
+            average_precision_pd = pd.DataFrame(data = average_precision,
+                                           index=names, columns=['average precision'])
+            peices = save_attr_metrcis.split('/')
+            peices[-1] = 'attr_retrieval_average_precision.xlsx'
+            path_average_precision = '/'.join(peices)
+            average_precision_pd.to_excel(path_average_precision)
 
