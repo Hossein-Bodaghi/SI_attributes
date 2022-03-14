@@ -193,6 +193,59 @@ def attr_concatenator(out_data, activation = False):
                 y_attr = torch.cat((y_attr, out_data[key]), dim=1)
         m += 1
     return y_attr
+
+def attr_retrieval_predictor(out_data, data, need_tensor_max = False, categorical = True):
+    'calculte y_attr and y_target for categorical and vectorize formats'
+    if categorical:
+        m = 0
+        bces = ['body_type', 'gender', 'head_colour', 'body_colour', 'attributes', 'position', 'accessories'] 
+        for key in out_data:
+            if key in bces:
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+                p = torch.sigmoid(out_data[key])
+                if m == 0:
+                    y_target = data[key]
+                else:
+                    y_target = torch.cat((y_target, data[key]),dim = 1)
+            else :
+                p = softmax(out_data[key])
+                if m == 0:
+                    y_target = data[key]
+                else:
+                    y_target = torch.cat((y_target, data[key]), dim = 1)
+                if need_tensor_max:
+                    y = tensor_max(p)
+                else:
+                    y = tensor_thresh(p)
+            if m == 0:
+                y_attr = y
+                p_attr = p
+            else:
+                y_attr = torch.cat((y_attr, y), dim=1)
+                p_attr = torch.cat((p_attr, p), dim=1)
+            m += 1
+    else:
+        m = 0
+        for key in out_data:
+            if key == 'body_type' or key == 'gender' or key == 'body_colour' or key == 'attributes':
+                y = tensor_thresh(torch.sigmoid(out_data[key]), 0.5)
+                p = torch.sigmoid(out_data[key])
+            else :
+                p = torch.sigmoid(out_data[key])
+                if need_tensor_max:
+                    y = tensor_max(p)
+                else:
+                    y = tensor_thresh(p)
+            if m == 0:
+                y_attr = y
+                p_attr = p
+                y_target = data[key]
+            else :
+                y_target = torch.cat((y_target, data[key]), dim = 1)
+                p_attr = torch.cat((p_attr, p), dim=1)
+                y_attr = torch.cat(y_attr, y, dim=1)
+            m += 1
+    return y_attr, p_attr, y_target
 softmax = torch.nn.Softmax(dim=1)
 
 #%%
@@ -673,3 +726,29 @@ def take_out_multi_branch(attr_net, test_loader, device, part_loss, categorical)
     targets = torch.cat(targets)   
          
     return [predicts, targets]
+
+def take_out_attr_retrieval(attr_net, test_loader, device, part_loss, categorical):
+
+    attr_net = attr_net.to(device)
+    # evaluation:     
+    attr_net.eval()
+    with torch.no_grad():
+        targets = []
+        predicts = []
+        probability = []
+        for idx, data in enumerate(test_loader):
+            
+            for key, _ in data.items():
+                data[key] = data[key].to(device)
+                
+            # forward step
+            out_data = attr_net.forward(data['img'])           
+            y_attr, p_attr, y_target = attr_retrieval_predictor(out_data, data, need_tensor_max=categorical, categorical=categorical)
+            predicts.append(y_attr.to('cpu'))
+            probability.append(p_attr.to('cpu'))
+            targets.append(y_target.to('cpu'))
+    predicts = torch.cat(predicts)
+    probability = torch.cat(probability)
+    targets = torch.cat(targets)   
+         
+    return [predicts, probability, targets]

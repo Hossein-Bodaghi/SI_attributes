@@ -425,6 +425,27 @@ def iou_worst_plot(iou_result, valid_idx, main_path, attr, num_worst = 5):
     plot(orig_imgs, with_orig=False, iou_result=min_sort_iou_result)
     
     
+def map_evaluation(names, probability, targets):
+    
+    average_precision = []
+    for i in range(len(names)):
+        sorted, indices = torch.sort(probability[:,i], descending=True)
+        correct_prediction = 0 # the total positive until that array
+        running_sum = 0
+        for j in range(len(indices)):
+            idx = int(indices[j])
+            if targets[idx, i] == 1:
+                correct_prediction += 1
+                running_sum += correct_prediction/(j+1)
+            else:
+                pass
+        if correct_prediction != 0:
+            average_precision.append(running_sum/correct_prediction)
+        else:
+            average_precision.append(0)
+    mean_average_precision = sum(average_precision)/len(average_precision)
+    return [average_precision, mean_average_precision]    
+
 
 def augmentor(orig_img, transform, num_aug=7):
     augmented = [transform(orig_img) for i in range(num_aug)]
