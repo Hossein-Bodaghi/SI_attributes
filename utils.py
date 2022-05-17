@@ -286,25 +286,28 @@ def part_data_delivery(weights, device, dataset='CA_Market', dynamic=False):
                     loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
 
         if dataset == 'CA_Duke':
-
+            bces = ['body_type', 'gender', 'position', 'accessories', 'attributes']    
             for key in weights:
-                if key == 'body_type' or key == 'gender' or key == 'position' or key == 'accessories':
+                if key in bces:
                     loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
                 else:
                     loss_dict.update({key : nn.CrossEntropyLoss(weight= weights[key]).to(device)})
                     
         elif dataset == 'Market_attribute':
-            
+            bces = ['age', 'bags', 'leg_color', 'body_color', 'attributes']    
             for key in weights:
-                if key == 'age' or key == 'bags' or key == 'leg_color' or key == 'body_color':
+                if key in bces:            
+
                     loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
                     
                 else:
                     loss_dict.update({key : nn.BCEWithLogitsLoss(pos_weight= weights[key]).to(device)})
         elif dataset == 'Duke_attribute':
             
+            bces = ['age', 'bags', 'leg_color', 'body_color', 'attributes']    
             for key in weights:
-                if key == 'bags' or key == 'leg_color' or key == 'body_color':
+                if key in bces:            
+
                     loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
                     
                 else:
@@ -312,8 +315,10 @@ def part_data_delivery(weights, device, dataset='CA_Market', dynamic=False):
             
         elif dataset == 'PA100k':
             
+            bces = ['age', 'bags', 'leg_color', 'body_color', 'attributes']    
             for key in weights:
-                if key == 'bags' or key == 'leg_colour' or key == 'body_colour':
+                if key in bces:            
+
                     loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
                     
                 else:
@@ -321,8 +326,10 @@ def part_data_delivery(weights, device, dataset='CA_Market', dynamic=False):
                     
         elif dataset == 'CA_Duke_Market':
             
+            bces = ['age', 'bags', 'leg_color', 'body_color', 'attributes']    
             for key in weights:
-                if key == 'bags' or key == 'leg_colour' or key == 'body_colour':
+                if key in bces:            
+
                     loss_dict.update({key:nn.CrossEntropyLoss(weight= weights[key]).to(device)})
                     
                 else:

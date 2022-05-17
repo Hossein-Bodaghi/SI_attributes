@@ -29,9 +29,9 @@ torch.cuda.empty_cache()
 #%%
 def parse_args():
     parser = argparse.ArgumentParser(description ='identify the most similar clothes to the input image')
-    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Market')
-    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='eval')
-    parser.add_argument('--eval_mode', type = str, help = '[re_id, attr, attr_retrieval]', default='attr_retrieval')
+    parser.add_argument('--dataset', type = str, help = 'one of dataset = [CA_Market,Market_attribute,CA_Duke,Duke_attribute,PA100k,CA_Duke_Market]', default='CA_Duke')
+    parser.add_argument('--mode', type = str, help = 'mode of runner = [train, eval]', default='train')
+    parser.add_argument('--eval_mode', type = str, help = '[re_id, attr, attr_retrieval]', default='attr')
     parser.add_argument('--training_strategy',type = str,help = 'categorized or vectorized',default='vectorized')       
     parser.add_argument('--training_part',type = str,help = 'all, CA_Market: [age, head_colour, head, body, body_type, leg, foot, gender, bags, body_colour, leg_colour, foot_colour]'
                                                           +'Market_attribute: [age, bags, leg_colour, body_colour, leg_type, leg ,sleeve hair, hat, gender]'
@@ -44,9 +44,10 @@ def parse_args():
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
-    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_market.pth')
-    parser.add_argument('--branch_place',type = str,help = 'could be: conv1,maxpool,conv2,conv3,conv4,conv5',default='conv4')
+    parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_duke_softmax.pth')
+    parser.add_argument('--branch_place',type = str,help = 'could be: conv1,maxpool,conv2,conv3,conv4,conv5',default='conv3')
     parser.add_argument('--cross_domain',type = str,help = 'y/n',default='n')
+    parser.add_argument('--branch',type = str,help = 'y/n',default='y')
     args = parser.parse_args()
     return args
 
@@ -55,7 +56,9 @@ def parse_args():
 
 args = parse_args()
 b_name = args.branch_place+'_' if args.training_strategy == 'categorized' else ''
-version = args.dataset+'_'+b_name+args.training_strategy[:3]+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
+branch = True if args.branch == 'y' else False
+vec_nam = '_'+args.branch_place if args.branch == 'y' else ''
+version = args.dataset+'_'+b_name+args.training_strategy[:3]+vec_nam+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
 print('*** The Version is: ', version, '\n')
 '''v = 0
 while os.path.isdir('results/'+version):'''
@@ -144,7 +147,7 @@ else:
     
     train_idx = np.arange(len(attr_train['img_names']))
     if args.dataset == 'CA_Duke':
-        test_idx = np.arange(len(attr_test['gender']))
+        test_idx = np.arange(len(attr_test['img_names']))
         valid_idx = test_idx
     else:
         test_idx = np.arange(len(attr_test['img_names']))
@@ -302,8 +305,11 @@ if part_based:
 
 else:
     attr_dim = len(attr['names'] if M_or_M_attr_or_PA else attr_train['names'])
-
-    attr_net = attributes_model(model, feature_dim = 512, attr_dim = sum(branch_attrs_dims.values()) if cross_domain else attr_dim)
+    if branch:
+        attr_net = attributes_model(model, feature_dim = 512, 
+                                    attr_dim = sum(branch_attrs_dims.values()) if cross_domain else attr_dim, branch_place=args.branch_place)
+    else:
+        attr_net = attributes_model(model, feature_dim = 512, attr_dim = sum(branch_attrs_dims.values()) if cross_domain else attr_dim)
 
 if trained_multi_branch is not None:
     trained_net = torch.load(trained_multi_branch)
@@ -317,7 +323,6 @@ mb_size = get_n_params(attr_net)
 print('baseline has {} parameters'.format(baseline_size),'\n'
       'multi-branch net has {} parameters'.format(mb_size),'\n'
       'multi-branch is {:.2f} times bigger than baseline\n'.format(mb_size/baseline_size))
-
 #%%
 
 params = attr_net.parameters()
