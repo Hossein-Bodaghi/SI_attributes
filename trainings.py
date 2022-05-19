@@ -260,25 +260,26 @@ def dict_training_multi_branch(num_epoch,
                                version,
                                part_loss,
                                categorical,
+                               resume_dict,
                                resume=False,
-                               loss_train=None,
-                               loss_test=None,
-                               train_attr_F1=None,
-                               test_attr_F1=None,
-                               train_attr_acc=None,
-                               test_attr_acc=None,
-                               stoped_epoch=None):
+                               ):
     print('this is start')
-    loss_min = 10000
+
     f1_best = 0
     if resume:
-        train_loss = loss_train
-        test_loss = loss_test
-        F1_train = train_attr_F1
-        F1_test = test_attr_F1
-        Acc_train = train_attr_acc
-        Acc_test = test_attr_acc
+        loss_min = resume_dict['loss_min']
+        train_loss = resume_dict['train_loss']
+        test_loss = resume_dict['test_attr_loss']
+        F1_train = resume_dict['train_attr_f1']
+        F1_test = resume_dict['test_attr_f1']
+        Acc_train = resume_dict['train_attr_acc']
+        Acc_test = resume_dict['test_attr_acc']
+        optimizer.load_state_dict(torch.load(resume_dict['r_optimizer_path'], map_location = device))
+        scheduler.load_state_dict(torch.load(resume_dict['r_scheduler_path'], map_location = device))
+        attr_net.load_state_dict(torch.load(resume_dict['attr_net_path']).state_dict())
+
     else:
+        loss_min = 10000
         train_loss = []
         test_loss = []
         # attributes metrics lists
@@ -291,7 +292,7 @@ def dict_training_multi_branch(num_epoch,
 
     print('epoches started')
     if resume:
-        start_epoch = stoped_epoch + 1
+        start_epoch = resume_dict['training_epoch'] + 1
     else:
         start_epoch = 1
     

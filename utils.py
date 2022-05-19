@@ -18,6 +18,57 @@ from models import Loss_weighting
 from torchvision import transforms
 import pandas
 
+
+
+def resume_handler(resume, version):
+    
+    if resume:
+        result_path = os.path.join('./results/', version)
+        attr_net_path = os.path.join(result_path, 'attr_net.pth')
+        r_scheduler_path = os.path.join(result_path, 'scheduler.pth')
+        r_optimizer_path = os.path.join(result_path, 'optimizer.pth')
+        
+        best_epoch = torch.load(os.path.join(result_path, 'best_epoch.pth'))
+        test_attr_f1 = torch.load(os.path.join(result_path, 'test_attr_f1.pth'))
+        test_attr_acc = torch.load(os.path.join(result_path, 'test_attr_acc.pth'))
+        test_attr_loss = torch.load(os.path.join(result_path, 'test_attr_loss.pth'))
+        loss_min = test_attr_loss[best_epoch-1]
+        train_attr_f1 = torch.load(os.path.join(result_path, 'train_attr_f1.pth'))
+        train_attr_acc = torch.load(os.path.join(result_path, 'train_attr_acc.pth'))
+        train_loss = torch.load(os.path.join(result_path, 'train_loss.pth'))
+        training_epoch = torch.load(os.path.join(result_path, 'training_epoch.pth'))
+
+    else:
+        result_path = None
+        attr_net_path = None
+        r_scheduler_path = None
+        r_optimizer_path = None
+        
+        loss_min = None
+        test_attr_f1 = None
+        test_attr_acc = None
+        test_attr_loss = None
+        train_attr_f1 = None
+        train_attr_acc = None
+        train_loss = None
+        training_epoch = None
+    
+    return {
+            'result_path' : result_path,
+            'attr_net_path' : attr_net_path,
+            'r_scheduler_path' : r_scheduler_path,
+            'r_optimizer_path' : r_optimizer_path,
+            
+            'loss_min' : loss_min,
+            'test_attr_f1' : test_attr_f1,
+            'test_attr_acc' : test_attr_acc,
+            'test_attr_loss' : test_attr_loss,
+            'train_attr_f1' : train_attr_f1,
+            'train_attr_acc' : train_attr_acc,
+            'train_loss' : train_loss,
+            'training_epoch' : training_epoch,
+        }
+
 def common_attr(predicts, targets):
     '''ca_market & pa100k 
       CA_Market	PA100k

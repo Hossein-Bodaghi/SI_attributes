@@ -7,7 +7,7 @@ Created on Tue Jan 11 20:07:29 2022
 """
 #%%
 # repository imports
-from utils import get_n_params, part_data_delivery, resampler, LGT, attr_weight, validation_idx, iou_worst_plot, common_attr, metrics_print, total_metrics, map_evaluation
+from utils import get_n_params, part_data_delivery, resampler, LGT, attr_weight, validation_idx, iou_worst_plot, common_attr, metrics_print, total_metrics, map_evaluation, resume_handler
 from trainings import dict_training_multi_branch, take_out_multi_branch, dict_training_dynamic_loss, take_out_attr_retrieval
 from models import attributes_model, Loss_weighting, mb_CA_auto_same_depth_build_model
 from delivery import data_delivery, reid_delivery
@@ -39,15 +39,16 @@ def parse_args():
                                                            + 'CA_Duke:[gender,head,head_color,hat,cap_color,body,body_color,bags,face,leg,leg_color,foot,foot_color,accessories,position,race', default='all')
     parser.add_argument('--sampler_max',type = int,help = 'maxmimum iteration of images, if 1 nothing would change',default = 3)
     parser.add_argument('--num_worst',type = int,help = 'to plot how many of the worst images in eval mode',default = 10)
-    parser.add_argument('--epoch',type = float,help = 'number epochs',default = 30)
+    parser.add_argument('--epoch',type = float,help = 'number epochs',default = 50)
     parser.add_argument('--lr',type = float,help = 'learning rate',default = 3.5e-5)
     parser.add_argument('--batch_size',type = int,help = 'training batch size',default = 32)
     parser.add_argument('--loss_weights',type = str,help = 'loss_weights if None without weighting [None,effective,dynamic]',default='None')
     parser.add_argument('--baseline',type = str,help = 'it should be one the [osnet_x1_0, osnet_ain_x1_0, lu_person]',default='osnet_x1_0')
     parser.add_argument('--baseline_path',type = str,help = 'path of network weights [osnet_x1_0_market, osnet_ain_x1_0_msmt17, osnet_x1_0_msmt17,osnet_x1_0_duke_softmax]',default='./checkpoints/osnet_x1_0_duke_softmax.pth')
-    parser.add_argument('--branch_place',type = str,help = 'could be: conv1,maxpool,conv2,conv3,conv4,conv5',default='conv4')
+    parser.add_argument('--branch_place',type = str,help = 'could be: conv1,maxpool,conv2,conv3,conv4,conv5',default='conv3')
     parser.add_argument('--cross_domain',type = str,help = 'y/n',default='n')
     parser.add_argument('--branch',type = str,help = 'y/n',default='y')
+    parser.add_argument('--resume',type = str,help = 'y/n',default='y')
     args = parser.parse_args()
     return args
 
@@ -57,6 +58,7 @@ def parse_args():
 args = parse_args()
 b_name = args.branch_place+'_' if args.training_strategy == 'categorized' else ''
 branch = True if args.branch == 'y' else False
+resume = True if args.resume == 'y' else False
 vec_nam = '_'+args.branch_place if args.branch == 'y' else ''
 version = args.dataset+'_'+b_name+args.training_strategy[:3]+vec_nam+'_'+re.search('/checkpoints/(.*).pth', args.baseline_path).group(1)
 print('*** The Version is: ', version, '\n')
@@ -68,7 +70,10 @@ while os.path.isdir('results/'+version):'''
 save_attr_metrcis = './results/'+version+'/attr_metrics.xlsx'
 
 if os.path.exists('./results/'+version+'/best_attr_net.pth'):
-    trained_multi_branch = './results/'+version+'/best_attr_net.pth'
+    # if resume:
+    #     trained_multi_branch = os.path.join('./results', version, 'attr_net.pth')
+    # else:
+        trained_multi_branch = './results/'+version+'/best_attr_net.pth'
 else:
     trained_multi_branch = None
 
@@ -348,14 +353,8 @@ if args.mode == 'train':
                               device = device,
                               version = version,
                               categorical = part_based,
-                              resume=False,
-                              loss_train = None,
-                              loss_test=None,
-                              train_attr_F1=None,
-                              test_attr_F1=None,
-                              train_attr_acc=None,
-                              test_attr_acc=None,  
-                              stoped_epoch=None)
+                              resume_dict = resume_handler(resume, version),
+                              resume=False)
     else:
         dict_training_multi_branch(num_epoch = args.epoch,
                               attr_net = attr_net,
@@ -368,14 +367,8 @@ if args.mode == 'train':
                               device = device,
                               version = version,
                               categorical = part_based,
-                              resume=False,
-                              loss_train = None,
-                              loss_test=None,
-                              train_attr_F1=None,
-                              test_attr_F1=None,
-                              train_attr_acc=None,
-                              test_attr_acc=None,  
-                              stoped_epoch=None)
+                              resume_dict = resume_handler(resume, version),
+                              resume=resume)
 #%%
 if args.mode == 'eval':
     import pandas as pd
