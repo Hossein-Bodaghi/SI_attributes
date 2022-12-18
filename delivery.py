@@ -42,9 +42,14 @@ mode = ['CA_Market', 'Market_attribute', 'CA_Duke', 'Duke_attribute', 'PA100k]
     if need_id: 
         output.update({'id':attr_vec[:,-1]})        
     img_names = load_image_names(main_path)
-    output.update({'img_names':img_names,
-                    'id':np.array([int(i.split('_')[0]) for i in img_names]),
-                    'cam_id':np.array([int(i.split('_')[1][1]) for i in img_names])})
+    if dataset != 'CA_Duke_Market': 
+        output.update({'img_names':img_names,
+                        'id':np.array([int(i.split('_')[0]) for i in img_names]),
+                        'cam_id':np.array([int(i.split('_')[1][1]) for i in img_names])})
+    else:
+        output.update({'img_names':img_names,
+                        'id':np.array([int(i.split('_')[1]) for i in img_names]),
+                        'cam_id':np.array([int(i.split('_')[2][1]) for i in img_names])})
             
     if need_parts:  
         if dataset == 'CA_Market':                        
